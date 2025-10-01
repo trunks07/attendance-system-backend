@@ -17,7 +17,7 @@ class UserModel:
         self.collection = db[self.collection_name]
 
     def _convert_objectids_to_str(self, document: Dict[str, Any]) -> Dict[str, Any]:
-        for key in ["_id", "employee_id"]:
+        for key in ["_id"]:
             if key in document and isinstance(document[key], ObjectId):
                 document[key] = str(document[key])
         return document
@@ -82,20 +82,6 @@ class UserModel:
             session=session,
         )
 
-        return self._convert_objectids_to_str(document) if document else None
-
-    async def get_by_employee_id(
-        self,
-        employee_id: IDLike,
-        session: Optional[AgnosticClientSession] = None,
-    ) -> Optional[Dict[str, Any]]:
-        if not ObjectId.is_valid(employee_id):
-            raise HTTPException(400, "Invalid ID format")
-        employee_id = ObjectId(employee_id)
-
-        document = await self.collection.find_one(
-            {"employee_id": employee_id}, session=session
-        )
         return self._convert_objectids_to_str(document) if document else None
 
     async def get_all(
