@@ -13,6 +13,7 @@ app/http/requests/__pycache__
 /app/dependencies/__pycache__
 /app/dependencies/permissions/__pycache__
 /app/dependencies/json/__pycache__
+/tests/__pycache__
 .venv
 /__pycache__
 function.zip

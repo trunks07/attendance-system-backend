@@ -13,7 +13,7 @@ def routing(app: FastAPI):
     # Default Routings
     app.include_router(SystemController.router)
 
-    app.include_router(UserController.router, prefix="/user")
+    app.include_router(UserController.router, prefix="/users")
 
     app.add_middleware(GZipMiddleware)
 
