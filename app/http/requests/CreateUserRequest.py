@@ -1,12 +1,12 @@
 import re
-from typing import Optional
 from pydantic import BaseModel, field_validator, model_validator
 
 
 class CreateUserRequest(BaseModel):
-    email: Optional[str] = None
-    password: Optional[str] = None
-    confirm_password: Optional[str] = None
+    email: str
+    full_name: str
+    password: str
+    confirm_password: str
 
     @field_validator("email")
     def validate_email(cls, v: str) -> str:

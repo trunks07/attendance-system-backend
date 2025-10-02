@@ -14,3 +14,4 @@ class Hash:
     key = os.getenv("APP_KEY")
     algorithm = os.getenv("ALGORITHM", "HS256")
     access_token_expire_minutes = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", 60))
+    refresh_token_expire_minutes = int(os.getenv("REFRESH_TOKEN_EXPIRE_MINUTES", 720))
