@@ -1,27 +1,26 @@
 from datetime import timedelta
-from typing import Annotated, Optional
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from typing import Annotated
+from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
-from app.config.database import get_db
-from app.libs.helper import Helper
-from app.models.schemas.UserSchema import User
-from app.services.AuthService import (
-    get_password_hash,
-    verify_password,
-    create_access_token,
-    create_refresh_token,
-    use_refresh_token,
-    get_current_active_user
-)
-from app.models.User import UserModel
 from app.config.credentials import Hash
+from app.config.database import get_db
+from app.http.requests.ChangeUserPasswordRequest import ChangeUserPasswordRequest
 from app.http.requests.LoginRequest import LoginRequest
 from app.http.requests.RefreshTokenRequest import RefreshTokenRequest
-from app.http.requests.ChangeUserPasswordRequest import ChangeUserPasswordRequest
-
+from app.models.schemas.UserSchema import User
+from app.models.User import UserModel
+from app.services.AuthService import (
+    create_access_token,
+    create_refresh_token,
+    get_current_active_user,
+    get_password_hash,
+    use_refresh_token,
+    verify_password,
+)
 
 router = APIRouter(tags=["Auth"])
+
 
 @router.post("/login")
 async def login(request: LoginRequest):
@@ -66,7 +65,7 @@ async def login(request: LoginRequest):
                 "refresh_token": refresh_toke,
                 "token_type": "bearer",
                 "expires_in": refresh_token_expires.total_seconds(),
-            }
+            },
         }
 
         return JSONResponse(
@@ -77,11 +76,12 @@ async def login(request: LoginRequest):
             status_code=status.HTTP_400_BAD_REQUEST, content={"error": str(e)}
         )
 
+
 @router.post("/refresh")
 async def refresh_token(request: RefreshTokenRequest):
     try:
         payload = request.model_dump()
-        response = use_refresh_token(payload['refresh_token'])
+        response = use_refresh_token(payload["refresh_token"])
 
         return JSONResponse(
             status_code=status.HTTP_200_OK, content=jsonable_encoder(response)
@@ -90,6 +90,7 @@ async def refresh_token(request: RefreshTokenRequest):
         return JSONResponse(
             status_code=status.HTTP_400_BAD_REQUEST, content={"error": str(e)}
         )
+
 
 @router.get("/profile", response_model=User)
 async def get_profile(profile: Annotated[User, Depends(get_current_active_user)]):
@@ -102,10 +103,11 @@ async def get_profile(profile: Annotated[User, Depends(get_current_active_user)]
             status_code=status.HTTP_400_BAD_REQUEST, content={"error": str(e)}
         )
 
+
 @router.patch("/change-password", response_model=User)
 async def change_password(
     profile: Annotated[User, Depends(get_current_active_user)],
-    request: ChangeUserPasswordRequest
+    request: ChangeUserPasswordRequest,
 ):
     try:
         payload = request.model_dump()
@@ -113,10 +115,10 @@ async def change_password(
         db = await get_db()
         user_model = UserModel(db)
 
-        await user_model.update_password(profile["_id"], get_password_hash(payload["password"]))
-        return JSONResponse(
-            status_code=status.HTTP_204_NO_CONTENT, content={}
+        await user_model.update_password(
+            profile["_id"], get_password_hash(payload["password"])
         )
+        return JSONResponse(status_code=status.HTTP_204_NO_CONTENT, content={})
     except HTTPException as e:
         return JSONResponse(
             status_code=status.HTTP_400_BAD_REQUEST, content={"error": str(e)}

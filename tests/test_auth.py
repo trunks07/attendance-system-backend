@@ -1,12 +1,14 @@
 import pytest
+import app.services.AuthService as auth_service
 from types import SimpleNamespace
 from unittest.mock import AsyncMock
 from fastapi.testclient import TestClient
 from datetime import datetime, timezone
 
 from app.main import app
+
 import app.http.controllers.AuthController as auth_module
-import app.services.AuthService as auth_service
+
 
 
 @pytest.fixture
@@ -28,7 +30,7 @@ def fake_user_doc():
 
 
 class FakeUserModel:
-    """Fake UserModel exposing only the methods used by Auth controller."""
+    """Fake UserModel exposing only the methods the Auth router uses."""
     def __init__(self, db=None):
         self.get_by_email = AsyncMock()
         self.update_password = AsyncMock()
@@ -36,21 +38,13 @@ class FakeUserModel:
 
 @pytest.fixture
 def patch_auth(monkeypatch):
-    """
-    Patch UserModel, get_db, token/hash helpers, and the auth dependency
-    both at app level and within the auth controller module.
-    Usage:
-        fake_model = FakeUserModel()
-        fake_model.get_by_email.return_value = <doc or None>
-        patch_auth(fake_model)
-    """
     def _patch(fake_model_instance):
         monkeypatch.setattr(auth_module, "UserModel", lambda db=None: fake_model_instance)
 
         async def fake_get_db():
             return SimpleNamespace()
-
         monkeypatch.setattr(auth_module, "get_db", fake_get_db)
+
         monkeypatch.setattr(auth_module, "verify_password", lambda plain, hashed: True)
         monkeypatch.setattr(auth_module, "get_password_hash", lambda pw: "fakehash")
         monkeypatch.setattr(auth_module, "create_access_token", lambda data, expires_delta=None: "access-token")
@@ -59,9 +53,7 @@ def patch_auth(monkeypatch):
 
         async def _fake_current_user():
             return {"_id": "fixture-user", "email": "fixture@example.com", "full_name": "Fixture"}
-
         app.dependency_overrides[auth_service.get_current_active_user] = _fake_current_user
-        monkeypatch.setattr(auth_module, "get_current_active_user", _fake_current_user)
 
     try:
         yield _patch
@@ -69,19 +61,17 @@ def patch_auth(monkeypatch):
         app.dependency_overrides.pop(auth_service.get_current_active_user, None)
 
 
+# Helper to patch get_current_active_user dependency
 def patch_current_user(monkeypatch, profile_dict):
-    """
-    Convenience to set a specific profile as the active user for endpoints that depend on it.
-    Returns a cleanup lambda if caller wants to pop override explicitly.
-    """
     async def _fake_current_user():
         return profile_dict
 
     app.dependency_overrides[auth_service.get_current_active_user] = _fake_current_user
-    monkeypatch.setattr(auth_module, "get_current_active_user", _fake_current_user)
 
     return lambda: app.dependency_overrides.pop(auth_service.get_current_active_user, None)
 
+
+# --- tests -----------------------------------------------------------------
 
 def test_login_success(patch_auth, fake_user_doc, sample_login_payload):
     fake_model = FakeUserModel()
@@ -117,7 +107,6 @@ def test_login_invalid_credentials(patch_auth, fake_user_doc, sample_login_paylo
     fake_model = FakeUserModel()
     fake_model.get_by_email.return_value = fake_user_doc
     patch_auth(fake_model)
-
     monkeypatch.setattr(auth_module, "verify_password", lambda a, b: False)
 
     with TestClient(app) as client:
@@ -130,25 +119,23 @@ def test_login_invalid_credentials(patch_auth, fake_user_doc, sample_login_paylo
 
 def test_refresh_token_success(monkeypatch):
     monkeypatch.setattr(auth_module, "use_refresh_token", lambda token: {"access_token": "rot-access", "refresh_token": "rot-refresh"})
-
     with TestClient(app) as client:
         resp = client.post("/auth/refresh", json={"refresh_token": "any-token"})
 
     assert resp.status_code == 200
     body = resp.json()
-    assert isinstance(body, dict)
+    assert "access_token" in body or "refresh_token" in body or isinstance(body, dict)
 
 
 def test_get_profile_requires_auth(monkeypatch):
     now_iso = datetime.now(timezone.utc).isoformat()
     profile = {"_id": "507f1f77bcf86cd799439011", "email": "alice@example.com", "full_name": "Alice", "created_at": now_iso, "updated_at": now_iso}
 
-    cleanup = patch_current_user(monkeypatch, profile)
+    # patch the dependency to return our profile
+    patch_current_user(monkeypatch, profile)
 
     with TestClient(app) as client:
         resp = client.get("/auth/profile")
-
-    cleanup()
 
     assert resp.status_code == 200
     body = resp.json()
@@ -161,15 +148,14 @@ def test_change_password_success(patch_auth, monkeypatch):
     profile = {"_id": "507f1f77bcf86cd799439011", "email": "alice@example.com", "full_name": "Alice", "created_at": now_iso, "updated_at": now_iso}
 
     fake_model = FakeUserModel()
+
     patch_auth(fake_model)
-    cleanup = patch_current_user(monkeypatch, profile)
+    patch_current_user(monkeypatch, profile)
 
     payload = {"password": "newpass", "confirm_password": "newpass"}
 
     with TestClient(app) as client:
         resp = client.patch("/auth/change-password", json=payload)
-
-    cleanup()
 
     assert resp.status_code == 204
     fake_model.update_password.assert_awaited()
