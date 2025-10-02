@@ -138,7 +138,7 @@ async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)]):
     if not user_dict:
         raise HTTPException(status_code=401, detail="User not found")
 
-    return user_dict
+    return User(**user_dict)
 
 
 async def get_current_active_user(

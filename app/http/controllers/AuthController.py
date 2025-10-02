@@ -116,7 +116,7 @@ async def change_password(
         user_model = UserModel(db)
 
         await user_model.update_password(
-            profile["_id"], get_password_hash(payload["password"])
+            profile.id, get_password_hash(payload["password"])
         )
         return JSONResponse(status_code=status.HTTP_204_NO_CONTENT, content={})
     except HTTPException as e:
