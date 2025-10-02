@@ -6,7 +6,7 @@ from fastapi import FastAPI
 from mangum import Mangum
 from app.config.database import close_mongo_connection, connect_to_mongo
 from app.cors import cors_settings
-from app.web import routing
+from app.api import routing
 
 # Check if running in Lambda
 IS_LAMBDA = bool(os.getenv("AWS_LAMBDA_FUNCTION_NAME"))
