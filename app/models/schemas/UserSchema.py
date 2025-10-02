@@ -7,7 +7,9 @@ from pydantic_core import core_schema
 
 class PyObjectId(ObjectId):
     @classmethod
-    def __get_pydantic_core_schema__(cls, _source_type: Any, _handler: Any) -> core_schema.CoreSchema:
+    def __get_pydantic_core_schema__(
+        cls, _source_type: Any, _handler: Any
+    ) -> core_schema.CoreSchema:
         return core_schema.with_info_after_validator_function(
             cls.validate,  # validator function
             core_schema.str_schema(),  # input type

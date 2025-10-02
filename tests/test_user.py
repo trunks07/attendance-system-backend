@@ -1,16 +1,16 @@
 # tests/test_user.py
-import pytest
+from datetime import datetime, timezone
 from types import SimpleNamespace
 from unittest.mock import AsyncMock
-from fastapi.testclient import TestClient
+import pytest
 from bson import ObjectId
-from datetime import datetime, timezone
-
-# import your FastAPI app
-from app.main import app
+from fastapi.testclient import TestClient
 
 # module path of the router
 import app.http.controllers.UserController as user_controller_module
+
+# import your FastAPI app
+from app.main import app
 
 
 @pytest.fixture
@@ -80,9 +80,12 @@ def patch_model(monkeypatch):
     and patches get_db to a dummy async function.
     Usage in tests: patch_model(fake_instance)
     """
+
     def _patch(fake_instance):
         # Patch the class so controller's UserModel(db) returns our fake_instance
-        monkeypatch.setattr(user_controller_module, "UserModel", lambda db=None: fake_instance)
+        monkeypatch.setattr(
+            user_controller_module, "UserModel", lambda db=None: fake_instance
+        )
 
         async def fake_get_db():
             return SimpleNamespace()  # dummy db object
@@ -115,7 +118,9 @@ def test_index_returns_paginated_list(patch_model, created_user_item):
     assert pag["page_size"] == 10
 
 
-def test_store_creates_user_when_email_not_exists(patch_model, sample_user_payload, created_user_item):
+def test_store_creates_user_when_email_not_exists(
+    patch_model, sample_user_payload, created_user_item
+):
     fake_instance = FakeUserModel()
     fake_instance.get_by_email.return_value = None
     fake_instance.create.return_value = created_user_item
@@ -134,7 +139,10 @@ def test_store_creates_user_when_email_not_exists(patch_model, sample_user_paylo
 
 def test_store_returns_422_if_email_exists(patch_model, sample_user_payload):
     fake_instance = FakeUserModel()
-    fake_instance.get_by_email.return_value = {"_id": "existing", "email": sample_user_payload["email"]}
+    fake_instance.get_by_email.return_value = {
+        "_id": "existing",
+        "email": sample_user_payload["email"],
+    }
 
     patch_model(fake_instance)
 

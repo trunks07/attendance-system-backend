@@ -3,14 +3,15 @@ from fastapi import APIRouter, HTTPException, Query, status
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
 from app.config.database import get_db
-from app.libs.helper import Helper
-from app.models.User import UserModel, UserUpdate, UserCreate
-from app.models.schemas.UserSchema import User
-from app.services.AuthService import get_password_hash
-from app.http.requests.CreateUserRequest import CreateUserRequest
 from app.http.requests.ChangeUserPasswordRequest import ChangeUserPasswordRequest
+from app.http.requests.CreateUserRequest import CreateUserRequest
+from app.libs.helper import Helper
+from app.models.schemas.UserSchema import User
+from app.models.User import UserCreate, UserModel, UserUpdate
+from app.services.AuthService import get_password_hash
 
 router = APIRouter(tags=["User"])
+
 
 @router.get("/", response_model=list[User])
 async def index(
@@ -47,6 +48,7 @@ async def index(
             status_code=status.HTTP_400_BAD_REQUEST, content={"error": str(e)}
         )
 
+
 @router.post("/", response_model=User)
 async def store(request: CreateUserRequest):
     try:
@@ -75,6 +77,7 @@ async def store(request: CreateUserRequest):
             status_code=status.HTTP_400_BAD_REQUEST, content={"error": str(e)}
         )
 
+
 @router.get("/{user_id}", response_model=User)
 async def show(user_id: str):
     try:
@@ -91,6 +94,7 @@ async def show(user_id: str):
         return JSONResponse(
             status_code=status.HTTP_400_BAD_REQUEST, content={"error": str(e)}
         )
+
 
 @router.put("/{user_id}", response_model=User)
 async def update(user_id: str, request: UserUpdate):
@@ -115,6 +119,7 @@ async def update(user_id: str, request: UserUpdate):
             status_code=status.HTTP_400_BAD_REQUEST, content={"error": str(e)}
         )
 
+
 @router.patch("/{user_id}", response_model=None)
 async def update_password(user_id: str, request: ChangeUserPasswordRequest):
     try:
@@ -134,13 +139,12 @@ async def update_password(user_id: str, request: ChangeUserPasswordRequest):
             user["_id"], get_password_hash(payload["password"])
         )
 
-        return JSONResponse(
-            status_code=status.HTTP_204_NO_CONTENT, content={}
-        )
+        return JSONResponse(status_code=status.HTTP_204_NO_CONTENT, content={})
     except HTTPException as e:
         return JSONResponse(
             status_code=status.HTTP_400_BAD_REQUEST, content={"error": str(e)}
         )
+
 
 @router.delete("/{user_id}", response_model=None)
 async def delete(user_id: str):
@@ -157,9 +161,7 @@ async def delete(user_id: str):
 
         await user_model.delete(user_id)
 
-        return JSONResponse(
-            status_code=status.HTTP_204_NO_CONTENT, content={}
-        )
+        return JSONResponse(status_code=status.HTTP_204_NO_CONTENT, content={})
     except HTTPException as e:
         return JSONResponse(
             status_code=status.HTTP_400_BAD_REQUEST, content={"error": str(e)}

@@ -1,12 +1,8 @@
-from fastapi import Depends, FastAPI
+from fastapi import FastAPI
 from fastapi.middleware.gzip import GZipMiddleware
 
 # Routers
-from app.http.controllers import (
-    SystemController,
-    UserController,
-)
-from app.services.AuthService import verify_token
+from app.http.controllers import SystemController, UserController
 
 
 def routing(app: FastAPI):

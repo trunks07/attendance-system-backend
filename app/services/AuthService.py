@@ -8,8 +8,8 @@ from passlib.context import CryptContext
 from pydantic import BaseModel
 from app.config.credentials import Hash
 from app.config.database import get_db
-from app.models.User import UserModel
 from app.models.schemas.UserSchema import User
+from app.models.User import UserModel
 
 SECRET_KEY = Hash.key
 ALGORITHM = Hash.algorithm

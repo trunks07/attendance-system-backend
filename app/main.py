@@ -1,14 +1,12 @@
-
-import os
 import asyncio
-import uvicorn
-
-from mangum import Mangum
-from fastapi import FastAPI
-from app.web import routing
-from app.cors import cors_settings
+import os
 from contextlib import asynccontextmanager
+import uvicorn
+from fastapi import FastAPI
+from mangum import Mangum
 from app.config.database import close_mongo_connection, connect_to_mongo
+from app.cors import cors_settings
+from app.web import routing
 
 # Check if running in Lambda
 IS_LAMBDA = bool(os.getenv("AWS_LAMBDA_FUNCTION_NAME"))
@@ -27,6 +25,7 @@ async def lifespan(app: FastAPI):
         if not IS_LAMBDA:
             await close_mongo_connection()
 
+
 async def schedule_mass_sync():
     try:
         await asyncio.gather(
@@ -43,6 +42,7 @@ def lambda_handler(event, context):
         return {"statusCode": 200, "body": "Sync job completed successfully."}
     else:
         return asgi_handler(event, context)
+
 
 app = routing(FastAPI(lifespan=lifespan))
 app = cors_settings(app)
