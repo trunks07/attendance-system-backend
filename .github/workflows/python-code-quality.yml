@@ -9,6 +9,16 @@ on:
 jobs:
   code-quality:
     runs-on: ubuntu-latest
+    environment: Staging
+    env:
+      APP_NAME: ${{ vars.APP_NAME }}
+      ENVIRONMENT: ${{ vars.ENVIRONMENT }}
+      APP_KEY: ${{ secrets.APP_KEY }}
+      ALGORITHM: ${{ secrets.ALGORITHM }}
+      ACCESS_TOKEN_EXPIRE_MINUTES: ${{ vars.ACCESS_TOKEN_EXPIRE_MINUTES }}
+      MONGODB_URL: ${{ secrets.MONGODB_URL }}
+      DB_NAME: ${{ vars.DB_NAME }}
+      TEST_ENDPOINT: ${{ vars.TEST_ENDPOINT }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
