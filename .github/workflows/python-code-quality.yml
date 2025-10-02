@@ -32,31 +32,31 @@ jobs:
       # Auto-format code with Black
       - name: Format code with Black
         run: |
-          black /app
+          black app
 
       # Auto-sort imports with isort
       - name: Sort imports with isort
         run: |
-          isort /app
+          isort app
 
       # Now check if formatting is correct
       - name: Check formatting with Black
         run: |
-          black --check /app
+          black --check app
 
       # Now check if imports are sorted correctly
       - name: Check import sorting with isort
         run: |
-          isort --check-only /app
+          isort --check-only app
 
       # Run flake8 with appropriate configuration
       - name: Lint with flake8
         run: |
-          flake8 /app --max-line-length=88 --extend-ignore=E203,F401,F811
+          flake8 app --max-line-length=88 --extend-ignore=E203,F401,F811
 
       - name: Type check with mypy
         run: |
-          mypy /app
+          mypy app
 
       - name: Test with pytest
         run: |
