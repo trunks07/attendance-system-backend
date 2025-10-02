@@ -25,6 +25,7 @@ def sample_user_payload():
     return {
         "email": "carloguevarra454@gmail.com",
         "password": "supersecret123",
+        "full_name": "Carlo Guevarra",
         # common variants: "confirm_password" or "password_confirmation"
         # change to match your CreateUserRequest exactly
         "confirm_password": "supersecret123",
@@ -37,6 +38,7 @@ def created_user_item(any_objectid):
     return {
         "_id": str(any_objectid),
         "email": "carloguevarra454@gmail.com",
+        "full_name": "Carlo Guevarra",
         "created_at": now_iso,
         "updated_at": now_iso,
     }

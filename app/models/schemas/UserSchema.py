@@ -26,6 +26,7 @@ class PyObjectId(ObjectId):
 class UserBase(BaseModel):
     email: str
     password: str
+    full_name: str
 
 
 class UserCreate(UserBase):
@@ -36,6 +37,7 @@ class UserCreate(UserBase):
 class UserUpdate(BaseModel):
     email: Optional[str] = None
     password: Optional[str] = None
+    full_name: Optional[str] = None
     updated_at: datetime = Field(default_factory=datetime.now)
 
 

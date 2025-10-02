@@ -21,9 +21,12 @@ SECRET_KEY: Final[str] = cast(str, Hash.key)
 ALGORITHM: Final[str] = cast(str, Hash.algorithm)
 ACCESS_TOKEN_EXPIRE_MINUTES: Final[int] = cast(int, Hash.access_token_expire_minutes)
 
+# refresh tokens default lifetime (days)
+REFRESH_TOKEN_EXPIRE_DAYS: Final[int] = 7
+
 
 class TokenData(BaseModel):
-    email: str
+    id: str
 
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -38,10 +41,10 @@ def get_password_hash(password: str) -> str:
     return pwd_context.hash(password)
 
 
-async def get_user(email: str):
+async def get_user(id: str):
     db = await get_db()
     user_model = UserModel(db)
-    return await user_model.get_by_email(email)
+    return await user_model.get_by_id(id)
 
 
 async def authenticate_user(email: str, password: str):
@@ -54,11 +57,14 @@ async def authenticate_user(email: str, password: str):
 
 
 def create_access_token(data: dict, expires_delta: timedelta | None = None) -> str:
+    """
+    Create a short-lived access token. `data` should include identifying claims (e.g. {"sub": "<user_id>"}).
+    """
     to_encode = data.copy()
     if expires_delta:
         expire = datetime.now(timezone.utc) + expires_delta
     else:
-        expire = datetime.now(timezone.utc) + timedelta(minutes=15)
+        expire = datetime.now(timezone.utc) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
 
     to_encode.update({"exp": expire})
     # SECRET_KEY and ALGORITHM are typed as str (non-None) above
@@ -66,9 +72,25 @@ def create_access_token(data: dict, expires_delta: timedelta | None = None) -> s
     return encoded_jwt
 
 
+def create_refresh_token(data: dict, expires_delta: timedelta | None = None) -> str:
+    """
+    Create a longer-lived refresh token. `data` should include identifying claims (e.g. {"sub": "<user_id>"}).
+    Default expiry is REFRESH_TOKEN_EXPIRE_DAYS.
+    """
+    to_encode = data.copy()
+    if expires_delta:
+        expire = datetime.now(timezone.utc) + expires_delta
+    else:
+        expire = datetime.now(timezone.utc) + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
+
+    to_encode.update({"exp": expire})
+    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    return encoded_jwt
+
+
 def verify_token(token: Annotated[str, Depends(oauth2_scheme)]) -> TokenData:
     """
-    Decode and validate JWT. Returns TokenData or raises HTTPException.
+    Decode and validate access JWT. Returns TokenData or raises HTTPException.
     """
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
@@ -78,25 +100,62 @@ def verify_token(token: Annotated[str, Depends(oauth2_scheme)]) -> TokenData:
 
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        email = payload.get("sub")
-        if email is None:
+        id = payload.get("sub")
+        if id is None:
             raise credentials_exception
-        return TokenData(email=email)
+        return TokenData(id=id)
     except InvalidTokenError:
         raise credentials_exception
 
 
+def verify_refresh_token(token: str) -> TokenData:
+    """
+    Validate a refresh token (plain string, not Depends) and return TokenData.
+    Raises HTTPException(401) on invalid token.
+    """
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Invalid refresh token",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        id = payload.get("sub")
+        if id is None:
+            raise credentials_exception
+
+        return TokenData(id=id)
+    except InvalidTokenError:
+        raise credentials_exception
+
+
+def use_refresh_token(refresh_token: str) -> dict:
+    """
+    Given a valid refresh token, issue a new access token and a new refresh token (rotation).
+    Returns a dict: { "access_token": ..., "refresh_token": ..., "token_type": "bearer" }.
+    Raises HTTPException(401) if refresh token is invalid.
+    """
+    token_data = verify_refresh_token(refresh_token)
+    # Create new access token
+    access_token = create_access_token({"sub": token_data.id})
+    # Optionally rotate refresh token (create a new one)
+    new_refresh_token = create_refresh_token({"sub": token_data.id})
+
+    return {"access_token": access_token, "refresh_token": new_refresh_token, "token_type": "bearer"}
+
+
 async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)]):
     token_data = verify_token(token)
-    user_dict = await get_user(email=token_data.email)
+    user_dict = await get_user(id=token_data.id)
     if not user_dict:
         raise HTTPException(status_code=401, detail="User not found")
-    user = User(**user_dict)
-    return user
+
+    return user_dict
 
 
 async def get_current_active_user(
-    current_user: Annotated[User, Depends(get_current_user)],
+    current_user: Annotated[User, Depends(get_current_user)]
 ):
     if not current_user:
         raise HTTPException(status_code=400, detail="Inactive user")
