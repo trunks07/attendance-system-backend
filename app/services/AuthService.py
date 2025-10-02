@@ -23,7 +23,7 @@ ACCESS_TOKEN_EXPIRE_MINUTES: Final[int] = cast(int, Hash.access_token_expire_min
 
 
 class TokenData(BaseModel):
-    email: str | None = None
+    email: str
 
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
