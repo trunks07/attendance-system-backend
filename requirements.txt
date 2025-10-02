@@ -28,7 +28,6 @@ motor==3.7.1
 packaging==25.0
 passlib==1.7.4
 pluggy==1.6.0
-pwdlib==0.2.1
 pycparser==2.23
 pydantic==2.11.9
 pydantic_core==2.33.2
