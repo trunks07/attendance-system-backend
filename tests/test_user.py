@@ -1,12 +1,12 @@
 import pytest
+import app.services.AuthService as auth_service
+import app.http.controllers.AuthController as auth_module
 from types import SimpleNamespace
 from unittest.mock import AsyncMock
 from fastapi.testclient import TestClient
 from datetime import datetime, timezone
-
 from app.main import app
-import app.http.controllers.AuthController as auth_module
-import app.services.AuthService as auth_service
+from app.models.schemas.UserSchema import User as UserSchemaModel
 
 
 @pytest.fixture
@@ -70,15 +70,11 @@ def patch_auth(monkeypatch):
 
 
 def patch_current_user(monkeypatch, profile_dict):
-    """
-    Convenience to set a specific profile as the active user for endpoints that depend on it.
-    Returns a cleanup lambda if caller wants to pop override explicitly.
-    """
-    async def _fake_current_user():
-        return profile_dict
+    async def _fake_current_user_model():
+        return UserSchemaModel.model_validate(profile_dict)
 
-    app.dependency_overrides[auth_service.get_current_active_user] = _fake_current_user
-    monkeypatch.setattr(auth_module, "get_current_active_user", _fake_current_user)
+    app.dependency_overrides[auth_service.get_current_active_user] = _fake_current_user_model
+    monkeypatch.setattr(auth_module, "get_current_active_user", _fake_current_user_model)
 
     return lambda: app.dependency_overrides.pop(auth_service.get_current_active_user, None)
 

@@ -8,6 +8,7 @@ from datetime import datetime, timezone
 from app.main import app
 
 import app.http.controllers.AuthController as auth_module
+from app.models.schemas.UserSchema import User as UserSchemaModel
 
 
 
@@ -60,18 +61,15 @@ def patch_auth(monkeypatch):
     finally:
         app.dependency_overrides.pop(auth_service.get_current_active_user, None)
 
-
-# Helper to patch get_current_active_user dependency
 def patch_current_user(monkeypatch, profile_dict):
-    async def _fake_current_user():
-        return profile_dict
+    async def _fake_current_user_model():
+        return UserSchemaModel.model_validate(profile_dict)
 
-    app.dependency_overrides[auth_service.get_current_active_user] = _fake_current_user
+    app.dependency_overrides[auth_service.get_current_active_user] = _fake_current_user_model
+    monkeypatch.setattr(auth_module, "get_current_active_user", _fake_current_user_model)
 
     return lambda: app.dependency_overrides.pop(auth_service.get_current_active_user, None)
 
-
-# --- tests -----------------------------------------------------------------
 
 def test_login_success(patch_auth, fake_user_doc, sample_login_payload):
     fake_model = FakeUserModel()
