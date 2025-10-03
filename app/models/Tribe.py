@@ -5,13 +5,13 @@ from fastapi import Depends, HTTPException
 from motor.core import AgnosticClientSession
 from motor.motor_asyncio import AsyncIOMotorDatabase
 from app.config.database import get_db
-from app.models.schemas.UserSchema import UserCreate, UserUpdate
+from app.models.schemas.TribeSchema import TribeCreate, TribeUpdate
 
 IDLike = Union[str, ObjectId]
 
 
-class UserModel:
-    collection_name = "users"
+class TribeModel:
+    collection_name = "tribes"
 
     def __init__(self, db: AsyncIOMotorDatabase):
         self.collection = db[self.collection_name]
@@ -22,7 +22,7 @@ class UserModel:
                 document[key] = str(document[key])
         return document
 
-    async def get_user_list(
+    async def get_tribe_list(
         self,
         skip: int = 0,
         limit: int = 10,
@@ -33,27 +33,27 @@ class UserModel:
 
         if search_term:
             regex_pattern = {"$regex": f".*{search_term}.*", "$options": "i"}
-            query["$or"] = [{"email": regex_pattern, "full_name": regex_pattern}]
+            query["$or"] = [{"name": regex_pattern, "description": regex_pattern}]
 
         total_count = await self.collection.count_documents(query, session=session)
-        users = await (
+        tribes = await (
             self.collection.find(query, session=session, projection={"password": False})
             .skip(skip)
             .limit(limit)
             .to_list(length=limit)
         )
 
-        # `users` is a list of dicts (not None), convert each doc
-        converted_users: List[Dict[str, Any]] = [
-            self._convert_objectids_to_str(user) for user in users
+        # `tribes` is a list of dicts (not None), convert each doc
+        converted_tribes: List[Dict[str, Any]] = [
+            self._convert_objectids_to_str(tribe) for tribe in tribes
         ]
 
-        return converted_users, total_count
+        return converted_tribes, total_count
 
     async def create(
-        self, user_data: UserCreate, session: Optional[AgnosticClientSession] = None
+        self, tribe_data: TribeCreate, session: Optional[AgnosticClientSession] = None
     ) -> Dict[str, Any]:
-        item_dict: Dict[str, Any] = user_data.model_dump()
+        item_dict: Dict[str, Any] = tribe_data.model_dump()
         result = await self.collection.insert_one(item_dict, session=session)
 
         document = await self.collection.find_one(
@@ -61,23 +61,23 @@ class UserModel:
         )
         if not document:
             raise HTTPException(
-                status_code=500, detail="Failed to retrieve created user"
+                status_code=500, detail="Failed to retrieve created tribe"
             )
 
         return self._convert_objectids_to_str(document)
 
     async def get_by_id(
         self,
-        user_id: IDLike,
+        tribe_id: IDLike,
         session: Optional[AgnosticClientSession] = None,
     ) -> Optional[Dict[str, Any]]:
-        if isinstance(user_id, str):
-            if not ObjectId.is_valid(user_id):
+        if isinstance(tribe_id, str):
+            if not ObjectId.is_valid(tribe_id):
                 raise HTTPException(400, "Invalid ID format")
-            user_id = ObjectId(user_id)
+            tribe_id = ObjectId(tribe_id)
 
         document = await self.collection.find_one(
-            {"_id": user_id},
+            {"_id": tribe_id},
             projection={"password": False},
             session=session,
         )
@@ -90,46 +90,16 @@ class UserModel:
         documents = await self.collection.find({}, session=session).to_list(length=None)
         return [self._convert_objectids_to_str(doc) for doc in documents]
 
-    async def get_by_email(
-        self, email: str, session: Optional[AgnosticClientSession] = None
-    ) -> Optional[Dict[str, Any]]:
-        document = await self.collection.find_one({"email": email}, session=session)
-        return self._convert_objectids_to_str(document) if document else None
-
-    async def update_password(
-        self,
-        user_id: IDLike,
-        new_password: str,
-        session: Optional[AgnosticClientSession] = None,
-    ) -> Dict[str, Any]:
-        if not ObjectId.is_valid(user_id):
-            raise HTTPException(400, "Invalid ID format")
-
-        obj_id = ObjectId(user_id)
-        update_dict: Dict[str, Any] = {
-            "password": new_password,
-            "updated_at": datetime.now(),
-        }
-
-        await self.collection.update_one(
-            {"_id": obj_id}, {"$set": update_dict}, session=session
-        )
-
-        document = await self.get_by_id(obj_id, session=session)
-        if not document:
-            raise HTTPException(status_code=404, detail="User not found after update")
-        return document
-
     async def update(
         self,
-        user_id: str,
-        update_data: UserUpdate,
+        tribe_id: str,
+        update_data: TribeUpdate,
         session: Optional[AgnosticClientSession] = None,
     ) -> Dict[str, Any]:
-        if not ObjectId.is_valid(user_id):
+        if not ObjectId.is_valid(tribe_id):
             raise HTTPException(400, "Invalid ID format")
 
-        obj_id = ObjectId(user_id)
+        obj_id = ObjectId(tribe_id)
         update_dict: Dict[str, Any] = update_data.model_dump(
             exclude_unset=True, exclude_none=True
         )
@@ -144,22 +114,22 @@ class UserModel:
 
         document = await self.get_by_id(obj_id, session=session)
         if not document:
-            raise HTTPException(status_code=404, detail="User not found after update")
+            raise HTTPException(status_code=404, detail="Tribe not found after update")
         return document
 
     async def delete(
-        self, user_id: str, session: Optional[AgnosticClientSession] = None
+        self, tribe_id: str, session: Optional[AgnosticClientSession] = None
     ) -> bool:
-        if not ObjectId.is_valid(user_id):
+        if not ObjectId.is_valid(tribe_id):
             raise HTTPException(400, "Invalid ID format")
 
-        obj_id = ObjectId(user_id)
+        obj_id = ObjectId(tribe_id)
         result = await self.collection.delete_one({"_id": obj_id}, session=session)
         if result.deleted_count == 0:
-            raise HTTPException(404, "User not found")
+            raise HTTPException(404, "Tribe not found")
         return True
 
 
 # Dependency for routes
-def get_user_model(db: AsyncIOMotorDatabase = Depends(get_db)):
-    return UserModel(db)
+def get_tribe_model(db: AsyncIOMotorDatabase = Depends(get_db)):
+    return TribeModel(db)

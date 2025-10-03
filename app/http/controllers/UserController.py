@@ -17,17 +17,16 @@ router = APIRouter(tags=["User"])
 async def index(
     page: int = Query(1, ge=1, description="Page number"),
     page_size: int = Query(10, ge=1, le=100, description="Items per page"),
-    search: Optional[str] = Query(None, description="Search term for title or SKU"),
+    search: Optional[str] = Query(None, description="Search term for Email or full_name"),
 ):
     try:
         db = await get_db()
-        user_model = UserModel(db)
 
         # Calculate skip value
         skip = (page - 1) * page_size
 
         # Get paginated results with optional search
-        users, total_count = await user_model.get_user_list(
+        users, total_count = await UserModel(db).get_user_list(
             skip=skip, limit=page_size, search_term=search
         )
 
