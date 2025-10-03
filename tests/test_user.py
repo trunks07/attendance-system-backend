@@ -1,4 +1,3 @@
-# tests/test_user.py
 import pytest
 from types import SimpleNamespace
 from unittest.mock import AsyncMock
