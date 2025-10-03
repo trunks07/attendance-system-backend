@@ -8,6 +8,7 @@ from app.http.controllers import (
     SystemController,
     TribeController,
     UserController,
+    LifegroupController,
 )
 from app.services.AuthService import verify_token
 
@@ -27,6 +28,12 @@ def routing(app: FastAPI):
 
     app.include_router(
         MemberController.router, prefix="/members", dependencies=[Depends(verify_token)]
+    )
+
+    app.include_router(
+        LifegroupController.router,
+        prefix="/lifegroups",
+        dependencies=[Depends(verify_token)],
     )
 
     app.add_middleware(GZipMiddleware)
