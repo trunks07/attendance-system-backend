@@ -17,7 +17,9 @@ router = APIRouter(tags=["User"])
 async def index(
     page: int = Query(1, ge=1, description="Page number"),
     page_size: int = Query(10, ge=1, le=100, description="Items per page"),
-    search: Optional[str] = Query(None, description="Search term for Email or full_name"),
+    search: Optional[str] = Query(
+        None, description="Search term for Email or full_name"
+    ),
 ):
     try:
         db = await get_db()

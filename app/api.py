@@ -5,8 +5,8 @@ from fastapi.middleware.gzip import GZipMiddleware
 from app.http.controllers import (
     AuthController,
     SystemController,
+    TribeController,
     UserController,
-    TribeController
 )
 from app.services.AuthService import verify_token
 

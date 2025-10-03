@@ -9,11 +9,14 @@ from app.models.Tribe import TribeCreate, TribeModel, TribeUpdate
 
 router = APIRouter(tags=["Tribe"])
 
-@router.get('/', response_model=list[Tribe])
+
+@router.get("/", response_model=list[Tribe])
 async def index(
     page: int = Query(1, ge=1, description="Page number"),
     page_size: int = Query(10, ge=1, le=100, description="Items per page"),
-    search: Optional[str] = Query(None, description="Search term for Email or full_name"),
+    search: Optional[str] = Query(
+        None, description="Search term for Email or full_name"
+    ),
 ):
     try:
         db = await get_db()
@@ -43,54 +46,68 @@ async def index(
             status_code=status.HTTP_400_BAD_REQUEST, content={"error": str(e)}
         )
 
-@router.post('/', response_model=Tribe)
+
+@router.post("/", response_model=Tribe)
 async def store(request: TribeCreate):
     try:
         db = await get_db()
         result = await TribeModel(db).create(request)
 
-        return JSONResponse(status_code=status.HTTP_201_CREATED, content=jsonable_encoder(result))
+        return JSONResponse(
+            status_code=status.HTTP_201_CREATED, content=jsonable_encoder(result)
+        )
     except HTTPException as e:
         return JSONResponse(
             status_code=status.HTTP_400_BAD_REQUEST, content={"error": str(e)}
         )
 
-@router.get('/{tribe_id}', response_model=Tribe)
+
+@router.get("/{tribe_id}", response_model=Tribe)
 async def show(tribe_id: str):
     try:
         db = await get_db()
         result = await TribeModel(db).get_by_id(tribe_id)
 
-        return JSONResponse(status_code=status.HTTP_200_OK, content=jsonable_encoder(result))
+        return JSONResponse(
+            status_code=status.HTTP_200_OK, content=jsonable_encoder(result)
+        )
     except HTTPException as e:
         return JSONResponse(
             status_code=status.HTTP_400_BAD_REQUEST, content={"error": str(e)}
         )
 
-@router.put('/{tribe_id}', response_model=Tribe)
+
+@router.put("/{tribe_id}", response_model=Tribe)
 async def update(tribe_id: str, request: TribeUpdate):
     try:
         db = await get_db()
         tribe_model = TribeModel(db)
 
         if not await tribe_model.get_by_id(tribe_id):
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Tribe not found")
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail="Tribe not found"
+            )
 
         result = await tribe_model.update(tribe_id, request)
 
-        return JSONResponse(status_code=status.HTTP_200_OK, content=jsonable_encoder(result))
+        return JSONResponse(
+            status_code=status.HTTP_200_OK, content=jsonable_encoder(result)
+        )
     except HTTPException as e:
         return JSONResponse(
             status_code=status.HTTP_400_BAD_REQUEST, content={"error": str(e)}
         )
 
-@router.delete('/{tribe_id}', response_model=None)
+
+@router.delete("/{tribe_id}", response_model=None)
 async def delete(tribe_id: str):
     try:
         db = await get_db()
 
         if not await TribeModel(db).get_by_id(tribe_id):
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Tribe not found")
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail="Tribe not found"
+            )
 
         await TribeModel(db).delete(tribe_id)
 
