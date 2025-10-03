@@ -4,7 +4,7 @@ from bson import ObjectId
 from fastapi import Depends, HTTPException
 from motor.core import AgnosticClientSession
 from motor.motor_asyncio import AsyncIOMotorDatabase
-from pymongo.results import UpdateResult, DeleteResult
+from pymongo.results import DeleteResult, UpdateResult
 from app.config.database import get_db
 from app.models.schemas.MemberSchema import MemberCreate, MemberUpdate
 from app.models.Tribe import TribeModel
@@ -27,9 +27,6 @@ class MemberModel:
         return document
 
     def _base_query(self, include_deleted: bool = False) -> Dict[str, Any]:
-        """
-        Treat a document as NOT deleted if deleted_at is None OR deleted_at doesn't exist.
-        """
         if include_deleted:
             return {}
         return {"$or": [{"deleted_at": None}, {"deleted_at": {"$exists": False}}]}
@@ -117,14 +114,18 @@ class MemberModel:
         include_deleted: bool = False,
         session: Optional[AgnosticClientSession] = None,
     ) -> Optional[Dict[str, Any]]:
-        member = await self.get_by_id(member_id, include_deleted=include_deleted, session=session)
+        member = await self.get_by_id(
+            member_id, include_deleted=include_deleted, session=session
+        )
         if not member:
             return None
 
         # load tribe (include deleted tribes so you can still see historical relation)
         tribe = None
         try:
-            tribe = await self.tribe_model.get_by_id(member.get("tribe_id"), include_deleted=True, session=session)
+            tribe = await self.tribe_model.get_by_id(
+                member.get("tribe_id"), include_deleted=True, session=session
+            )
         except HTTPException:
             tribe = None
 
@@ -177,7 +178,9 @@ class MemberModel:
                 status_code=404, detail="Member not found or is deleted"
             )
 
-        document = await self.get_by_id(member_obj_id, include_deleted=True, session=session)
+        document = await self.get_by_id(
+            member_obj_id, include_deleted=True, session=session
+        )
         if not document:
             raise HTTPException(status_code=404, detail="Member not found after update")
         return document
@@ -188,33 +191,35 @@ class MemberModel:
         session: Optional[AgnosticClientSession] = None,
         hard_delete: bool = False,
     ) -> bool:
-        """
-        Soft-delete by default (set `deleted_at` to now).
-        If hard_delete=True, actually removes the document.
-        """
         if not ObjectId.is_valid(member_id):
             raise HTTPException(status_code=400, detail="Invalid ID format")
 
         member_obj_id = ObjectId(member_id)
 
         if hard_delete:
-            delete_result: DeleteResult = await self.collection.delete_one({"_id": member_obj_id}, session=session)  # type: ignore[assignment]
+            delete_result: DeleteResult = await self.collection.delete_one(
+                {"_id": member_obj_id},
+                session=session
+            )
+
             if delete_result.deleted_count == 0:
                 raise HTTPException(status_code=404, detail="Member not found")
             return True
 
-        # soft delete -> set deleted_at timestamp
         update_doc = {
             "$set": {"deleted_at": datetime.now(), "updated_at": datetime.now()}
         }
+
         update_result: UpdateResult = await self.collection.update_one(
             {"_id": member_obj_id, **self._base_query(include_deleted=False)},
             update_doc,
             session=session,
-        )  # type: ignore[assignment]
+        )
 
         if update_result.matched_count == 0:
-            existing = await self.collection.find_one({"_id": member_obj_id}, session=session)
+            existing = await self.collection.find_one(
+                {"_id": member_obj_id}, session=session
+            )
             if existing:
                 # already soft-deleted
                 return True
@@ -240,7 +245,9 @@ class MemberModel:
                 status_code=404, detail="Member not found or not deleted"
             )
 
-        document = await self.get_by_id(member_obj_id, include_deleted=True, session=session)
+        document = await self.get_by_id(
+            member_obj_id, include_deleted=True, session=session
+        )
         if not document:
             raise HTTPException(
                 status_code=404, detail="Member not found after restore"

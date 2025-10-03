@@ -4,7 +4,7 @@ from bson import ObjectId
 from fastapi import Depends, HTTPException
 from motor.core import AgnosticClientSession
 from motor.motor_asyncio import AsyncIOMotorDatabase
-from pymongo.results import UpdateResult, DeleteResult
+from pymongo.results import DeleteResult, UpdateResult
 from app.config.database import get_db
 from app.models.schemas.TribeSchema import TribeCreate, TribeUpdate
 
@@ -23,13 +23,9 @@ class TribeModel:
         return document
 
     def _base_query(self, include_deleted: bool = False) -> Dict[str, Any]:
-        """
-        Treat a document as NOT deleted if deleted_at is None OR deleted_at doesn't exist.
-        This avoids surprising behavior when older documents don't have the field.
-        """
         if include_deleted:
             return {}
-        # match docs where deleted_at is null OR deleted_at field does not exist
+
         return {"$or": [{"deleted_at": None}, {"deleted_at": {"$exists": False}}]}
 
     async def get_tribe_list(
@@ -62,9 +58,13 @@ class TribeModel:
 
         result = await self.collection.insert_one(item_dict, session=session)
 
-        document = await self.collection.find_one({"_id": result.inserted_id}, session=session)
+        document = await self.collection.find_one(
+            {"_id": result.inserted_id}, session=session
+        )
         if not document:
-            raise HTTPException(status_code=500, detail="Failed to retrieve created tribe")
+            raise HTTPException(
+                status_code=500, detail="Failed to retrieve created tribe"
+            )
 
         return self._convert_objectids_to_str(document)
 
@@ -92,10 +92,14 @@ class TribeModel:
         return self._convert_objectids_to_str(document) if document else None
 
     async def get_all(
-        self, include_deleted: bool = False, session: Optional[AgnosticClientSession] = None
+        self,
+        include_deleted: bool = False,
+        session: Optional[AgnosticClientSession] = None,
     ) -> List[Dict[str, Any]]:
         query = self._base_query(include_deleted)
-        documents = await self.collection.find(query, session=session).to_list(length=None)
+        documents = await self.collection.find(query, session=session).to_list(
+            length=None
+        )
         return [self._convert_objectids_to_str(doc) for doc in documents]
 
     async def update(
@@ -126,7 +130,9 @@ class TribeModel:
         if update_result.matched_count == 0:
             raise HTTPException(status_code=404, detail="Tribe not found or is deleted")
 
-        document = await self.get_by_id(tribe_obj_id, include_deleted=True, session=session)
+        document = await self.get_by_id(
+            tribe_obj_id, include_deleted=True, session=session
+        )
         if not document:
             raise HTTPException(status_code=404, detail="Tribe not found after update")
         return document
@@ -161,7 +167,9 @@ class TribeModel:
         )  # type: ignore[assignment]
 
         if update_result.matched_count == 0:
-            existing = await self.collection.find_one({"_id": tribe_obj_id}, session=session)
+            existing = await self.collection.find_one(
+                {"_id": tribe_obj_id}, session=session
+            )
             if existing:
                 # already soft-deleted
                 return True
@@ -181,9 +189,13 @@ class TribeModel:
         )  # type: ignore[assignment]
 
         if update_result.matched_count == 0:
-            raise HTTPException(status_code=404, detail="Tribe not found or not deleted")
+            raise HTTPException(
+                status_code=404, detail="Tribe not found or not deleted"
+            )
 
-        document = await self.get_by_id(tribe_obj_id, include_deleted=True, session=session)
+        document = await self.get_by_id(
+            tribe_obj_id, include_deleted=True, session=session
+        )
         if not document:
             raise HTTPException(status_code=404, detail="Tribe not found after restore")
         return document
