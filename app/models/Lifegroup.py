@@ -22,9 +22,13 @@ class LifegroupModel:
         self.tribe_model = TribeModel(db)
 
     def _convert_objectids_to_str(self, document: Dict[str, Any]) -> Dict[str, Any]:
-        for key in ["_id", "tribe_id", "leader_id"]:
-            if key in document and isinstance(document[key], ObjectId):
-                document[key] = str(document[key])
+        for key in ["_id", "tribe_id", "leader_id", "members"]:
+            if document:
+                if key in document and isinstance(document[key], ObjectId):
+                    document[key] = str(document[key])
+
+                if key in document and isinstance(document[key], list):
+                    document[key] = [str(t) for t in document[key]]
         return document
 
     def _base_query(self, include_deleted: bool = False) -> Dict[str, Any]:
@@ -102,12 +106,7 @@ class LifegroupModel:
         include_deleted: bool = False,
         session: Optional[AgnosticClientSession] = None,
     ) -> Optional[Dict[str, Any]]:
-        lifegroup_obj_id = ObjectId(lifegroup_id)
-        query = {"_id": lifegroup_obj_id}
-        if not include_deleted:
-            query.update(self._base_query(include_deleted))
-
-        document = await self.collection.find_one(query, session=session)
+        document = await self.get_by_id(lifegroup_id, include_deleted, session=session)
 
         if document:
             document["leader"] = await self.member_model.get_by_id(
@@ -118,7 +117,12 @@ class LifegroupModel:
                 document["tribe_id"], session=session
             )
 
-        return self._convert_objectids_to_str(document)
+            if len(document["members"]) > 0:
+                document["members"] = await self.member_model.get_by_ids(
+                    ids=document["members"], session=session
+                )
+
+        return document
 
     async def get_all(
         self,

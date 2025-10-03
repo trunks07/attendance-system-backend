@@ -31,6 +31,7 @@ class LifegroupBase(BaseModel):
 class LifegroupCreate(LifegroupBase):
     tribe_id: PyObjectId
     leader_id: PyObjectId
+    members: Optional[list[PyObjectId]] = None
     created_at: datetime = Field(default_factory=datetime.now)
     updated_at: datetime = Field(default_factory=datetime.now)
 
@@ -40,6 +41,7 @@ class LifegroupUpdate(BaseModel):
     description: Optional[str] = None
     tribe_id: Optional[PyObjectId] = None
     leader_id: Optional[PyObjectId] = None
+    members: Optional[list[PyObjectId]] = None
     updated_at: datetime = Field(default_factory=datetime.now)
 
 

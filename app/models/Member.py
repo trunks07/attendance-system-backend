@@ -103,7 +103,7 @@ class MemberModel:
             query.update(self._base_query(include_deleted))
 
         document = await self.collection.find_one(
-            query, projection={"password": False}, session=session
+            query, session=session
         )
 
         return self._convert_objectids_to_str(document) if document else None
@@ -134,6 +134,29 @@ class MemberModel:
         documents = await self.collection.find(query, session=session).to_list(
             length=None
         )
+        return [self._convert_objectids_to_str(doc) for doc in documents]
+
+    async def get_by_ids(
+        self,
+        ids: list[IDLike],
+        include_deleted: bool = False,
+        session: Optional[AgnosticClientSession] = None,
+    ) -> Optional[Dict[str, Any]]:
+        # normalize id variable name for clarity
+        member_obj_id = []
+
+        for id in ids:
+            if not ObjectId.is_valid(id):
+                raise HTTPException(status_code=400, detail="Invalid ID format")
+
+            member_obj_id.append(ObjectId(id))
+
+        query: Dict[str, Any] = {"_id": {"$in": member_obj_id}}
+        if not include_deleted:
+            query.update(self._base_query(include_deleted))
+
+        documents = await self.collection.find(query, session=session).to_list(length=None)
+
         return [self._convert_objectids_to_str(doc) for doc in documents]
 
     async def update(
