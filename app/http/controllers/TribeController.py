@@ -42,9 +42,7 @@ async def index(
             status_code=status.HTTP_200_OK, content=jsonable_encoder(response)
         )
     except HTTPException as e:
-        return JSONResponse(
-            status_code=status.HTTP_400_BAD_REQUEST, content={"error": str(e)}
-        )
+        return JSONResponse(status_code=e.status_code, content={"error": e.detail})
 
 
 @router.post("/", response_model=Tribe)
@@ -57,9 +55,7 @@ async def store(request: TribeCreate):
             status_code=status.HTTP_201_CREATED, content=jsonable_encoder(result)
         )
     except HTTPException as e:
-        return JSONResponse(
-            status_code=status.HTTP_400_BAD_REQUEST, content={"error": str(e)}
-        )
+        return JSONResponse(status_code=e.status_code, content={"error": e.detail})
 
 
 @router.get("/{tribe_id}", response_model=Tribe)
@@ -69,17 +65,13 @@ async def show(tribe_id: str):
         result = await TribeModel(db).get_by_id(tribe_id)
 
         if not result:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND, detail="Tribe not found"
-            )
+            raise HTTPException(status_code=404, detail="Item not found")
 
         return JSONResponse(
             status_code=status.HTTP_200_OK, content=jsonable_encoder(result)
         )
     except HTTPException as e:
-        return JSONResponse(
-            status_code=status.HTTP_400_BAD_REQUEST, content={"error": str(e)}
-        )
+        return JSONResponse(status_code=e.status_code, content={"error": e.detail})
 
 
 @router.put("/{tribe_id}", response_model=Tribe)
@@ -99,9 +91,7 @@ async def update(tribe_id: str, request: TribeUpdate):
             status_code=status.HTTP_200_OK, content=jsonable_encoder(result)
         )
     except HTTPException as e:
-        return JSONResponse(
-            status_code=status.HTTP_400_BAD_REQUEST, content={"error": str(e)}
-        )
+        return JSONResponse(status_code=e.status_code, content={"error": e.detail})
 
 
 @router.delete("/{tribe_id}", response_model=None)
@@ -118,6 +108,4 @@ async def delete(tribe_id: str):
 
         return JSONResponse(status_code=status.HTTP_204_NO_CONTENT, content={})
     except HTTPException as e:
-        return JSONResponse(
-            status_code=status.HTTP_400_BAD_REQUEST, content={"error": str(e)}
-        )
+        return JSONResponse(status_code=e.status_code, content={"error": e.detail})

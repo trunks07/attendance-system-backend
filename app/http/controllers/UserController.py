@@ -45,9 +45,7 @@ async def index(
             status_code=status.HTTP_200_OK, content=jsonable_encoder(response)
         )
     except HTTPException as e:
-        return JSONResponse(
-            status_code=status.HTTP_400_BAD_REQUEST, content={"error": str(e)}
-        )
+        return JSONResponse(status_code=e.status_code, content={"error": e.detail})
 
 
 @router.post("/", response_model=User)
@@ -74,9 +72,7 @@ async def store(request: CreateUserRequest):
             status_code=status.HTTP_200_OK, content=jsonable_encoder(user)
         )
     except HTTPException as e:
-        return JSONResponse(
-            status_code=status.HTTP_400_BAD_REQUEST, content={"error": str(e)}
-        )
+        return JSONResponse(status_code=e.status_code, content={"error": e.detail})
 
 
 @router.get("/{user_id}", response_model=User)
@@ -92,9 +88,7 @@ async def show(user_id: str):
             status_code=status.HTTP_200_OK, content=jsonable_encoder(user)
         )
     except HTTPException as e:
-        return JSONResponse(
-            status_code=status.HTTP_400_BAD_REQUEST, content={"error": str(e)}
-        )
+        return JSONResponse(status_code=e.status_code, content={"error": e.detail})
 
 
 @router.put("/{user_id}", response_model=User)
@@ -116,9 +110,7 @@ async def update(user_id: str, request: UserUpdate):
             status_code=status.HTTP_200_OK, content=jsonable_encoder(response)
         )
     except HTTPException as e:
-        return JSONResponse(
-            status_code=status.HTTP_400_BAD_REQUEST, content={"error": str(e)}
-        )
+        return JSONResponse(status_code=e.status_code, content={"error": e.detail})
 
 
 @router.patch("/{user_id}", response_model=None)
@@ -142,9 +134,7 @@ async def update_password(user_id: str, request: ChangeUserPasswordRequest):
 
         return JSONResponse(status_code=status.HTTP_204_NO_CONTENT, content={})
     except HTTPException as e:
-        return JSONResponse(
-            status_code=status.HTTP_400_BAD_REQUEST, content={"error": str(e)}
-        )
+        return JSONResponse(status_code=e.status_code, content={"error": e.detail})
 
 
 @router.delete("/{user_id}", response_model=None)
@@ -164,6 +154,4 @@ async def delete(user_id: str):
 
         return JSONResponse(status_code=status.HTTP_204_NO_CONTENT, content={})
     except HTTPException as e:
-        return JSONResponse(
-            status_code=status.HTTP_400_BAD_REQUEST, content={"error": str(e)}
-        )
+        return JSONResponse(status_code=e.status_code, content={"error": e.detail})

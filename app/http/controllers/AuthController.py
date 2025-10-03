@@ -33,7 +33,7 @@ async def login(request: LoginRequest):
 
         if not user:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail="Incorrect Email or Password!"
             )
 
         if not verify_password(payload["password"], user["password"]):
@@ -72,9 +72,7 @@ async def login(request: LoginRequest):
             status_code=status.HTTP_200_OK, content=jsonable_encoder(response)
         )
     except HTTPException as e:
-        return JSONResponse(
-            status_code=status.HTTP_400_BAD_REQUEST, content={"error": str(e)}
-        )
+        return JSONResponse(status_code=e.status_code, content={"error": e.detail})
 
 
 @router.post("/refresh")
@@ -87,9 +85,7 @@ async def refresh_token(request: RefreshTokenRequest):
             status_code=status.HTTP_200_OK, content=jsonable_encoder(response)
         )
     except HTTPException as e:
-        return JSONResponse(
-            status_code=status.HTTP_400_BAD_REQUEST, content={"error": str(e)}
-        )
+        return JSONResponse(status_code=e.status_code, content={"error": e.detail})
 
 
 @router.get("/profile", response_model=User)
@@ -99,9 +95,7 @@ async def get_profile(profile: Annotated[User, Depends(get_current_active_user)]
             status_code=status.HTTP_200_OK, content=jsonable_encoder(profile)
         )
     except HTTPException as e:
-        return JSONResponse(
-            status_code=status.HTTP_400_BAD_REQUEST, content={"error": str(e)}
-        )
+        return JSONResponse(status_code=e.status_code, content={"error": e.detail})
 
 
 @router.patch("/change-password", response_model=User)
@@ -120,6 +114,4 @@ async def change_password(
         )
         return JSONResponse(status_code=status.HTTP_204_NO_CONTENT, content={})
     except HTTPException as e:
-        return JSONResponse(
-            status_code=status.HTTP_400_BAD_REQUEST, content={"error": str(e)}
-        )
+        return JSONResponse(status_code=e.status_code, content={"error": e.detail})

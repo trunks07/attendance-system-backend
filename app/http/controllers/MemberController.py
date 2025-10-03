@@ -41,9 +41,7 @@ async def index(
             status_code=status.HTTP_200_OK, content=jsonable_encoder(response)
         )
     except HTTPException as e:
-        return JSONResponse(
-            status_code=status.HTTP_400_BAD_REQUEST, content={"error": str(e)}
-        )
+        return JSONResponse(status_code=e.status_code, content={"error": e.detail})
 
 @router.post('/', response_model=Member)
 async def store(request: MemberCreate):
@@ -55,9 +53,7 @@ async def store(request: MemberCreate):
             status_code=status.HTTP_201_CREATED, content=jsonable_encoder(result)
         )
     except HTTPException as e:
-        return JSONResponse(
-            status_code=status.HTTP_400_BAD_REQUEST, content={"error": str(e)}
-        )
+        return JSONResponse(status_code=e.status_code, content={"error": e.detail})
 
 @router.get('/{member_id}', response_model=Member)
 async def show(member_id: str):
@@ -74,9 +70,7 @@ async def show(member_id: str):
             status_code=status.HTTP_200_OK, content=jsonable_encoder(result)
         )
     except HTTPException as e:
-        return JSONResponse(
-            status_code=status.HTTP_400_BAD_REQUEST, content={"error": str(e)}
-        )
+        return JSONResponse(status_code=e.status_code, content={"error": e.detail})
 
 @router.put('/{member_id}', response_model=Member)
 async def update(member_id: str, request: MemberUpdate):
@@ -94,9 +88,7 @@ async def update(member_id: str, request: MemberUpdate):
             status_code=status.HTTP_200_OK, content=jsonable_encoder(result)
         )
     except HTTPException as e:
-        return JSONResponse(
-            status_code=status.HTTP_400_BAD_REQUEST, content={"error": str(e)}
-        )
+        return JSONResponse(status_code=e.status_code, content={"error": e.detail})
 
 @router.delete('/{member_id}', response_model=None)
 async def delete(member_id: str):
@@ -112,6 +104,4 @@ async def delete(member_id: str):
 
         return JSONResponse(status_code=status.HTTP_204_NO_CONTENT, content={})
     except HTTPException as e:
-        return JSONResponse(
-            status_code=status.HTTP_400_BAD_REQUEST, content={"error": str(e)}
-        )
+        return JSONResponse(status_code=e.status_code, content={"error": e.detail})
