@@ -33,7 +33,8 @@ async def login(request: LoginRequest):
 
         if not user:
             raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail="Incorrect Email or Password!"
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+                detail="Incorrect Email or Password!",
             )
 
         if not verify_password(payload["password"], user["password"]):

@@ -58,7 +58,9 @@ class TribeModel:
             {"_id": result.inserted_id}, session=session
         )
         if not document:
-            raise HTTPException(status_code=500, detail="Failed to retrieve created tribe")
+            raise HTTPException(
+                status_code=500, detail="Failed to retrieve created tribe"
+            )
 
         return self._convert_objectids_to_str(document)
 
@@ -81,10 +83,14 @@ class TribeModel:
         return self._convert_objectids_to_str(document) if document else None
 
     async def get_all(
-        self, include_deleted: bool = False, session: Optional[AgnosticClientSession] = None
+        self,
+        include_deleted: bool = False,
+        session: Optional[AgnosticClientSession] = None,
     ) -> List[Dict[str, Any]]:
         query = self._base_query(include_deleted)
-        documents = await self.collection.find(query, session=session).to_list(length=None)
+        documents = await self.collection.find(query, session=session).to_list(
+            length=None
+        )
         return [self._convert_objectids_to_str(doc) for doc in documents]
 
     async def update(
@@ -108,7 +114,9 @@ class TribeModel:
         if not allow_update_deleted:
             query["deleted"] = {"$ne": True}
 
-        result = await self.collection.update_one(query, {"$set": update_dict}, session=session)
+        result = await self.collection.update_one(
+            query, {"$set": update_dict}, session=session
+        )
         if result.matched_count == 0:
             raise HTTPException(status_code=404, detail="Tribe not found or is deleted")
 
@@ -135,8 +143,16 @@ class TribeModel:
             return True
 
         # soft delete
-        update = {"$set": {"deleted": True, "deleted_at": datetime.now(), "updated_at": datetime.now()}}
-        result = await self.collection.update_one({"_id": obj_id, "deleted": {"$ne": True}}, update, session=session)
+        update = {
+            "$set": {
+                "deleted": True,
+                "deleted_at": datetime.now(),
+                "updated_at": datetime.now(),
+            }
+        }
+        result = await self.collection.update_one(
+            {"_id": obj_id, "deleted": {"$ne": True}}, update, session=session
+        )
         if result.matched_count == 0:
             existing = await self.collection.find_one({"_id": obj_id}, session=session)
             if existing:
@@ -151,10 +167,16 @@ class TribeModel:
             raise HTTPException(status_code=400, detail="Invalid ID format")
 
         obj_id = ObjectId(tribe_id)
-        update = {"$set": {"deleted": False, "deleted_at": None, "updated_at": datetime.now()}}
-        result = await self.collection.update_one({"_id": obj_id, "deleted": True}, update, session=session)
+        update = {
+            "$set": {"deleted": False, "deleted_at": None, "updated_at": datetime.now()}
+        }
+        result = await self.collection.update_one(
+            {"_id": obj_id, "deleted": True}, update, session=session
+        )
         if result.matched_count == 0:
-            raise HTTPException(status_code=404, detail="Tribe not found or not deleted")
+            raise HTTPException(
+                status_code=404, detail="Tribe not found or not deleted"
+            )
 
         document = await self.get_by_id(obj_id, include_deleted=True, session=session)
         if not document:

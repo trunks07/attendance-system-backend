@@ -4,10 +4,10 @@ from fastapi.middleware.gzip import GZipMiddleware
 # Routers
 from app.http.controllers import (
     AuthController,
+    MemberController,
     SystemController,
     TribeController,
     UserController,
-    MemberController
 )
 from app.services.AuthService import verify_token
 

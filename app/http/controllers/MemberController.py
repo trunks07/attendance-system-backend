@@ -4,18 +4,20 @@ from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
 from app.config.database import get_db
 from app.libs.helper import Helper
-from app.models.schemas.MemberSchema import Member
 from app.models.Member import MemberCreate, MemberModel, MemberUpdate
+from app.models.schemas.MemberSchema import Member
 
 router = APIRouter(tags=["Member"])
 
-@router.get('/', response_model=list[Member])
+
+@router.get("/", response_model=list[Member])
 async def index(
     page: int = Query(1, ge=1, description="Page number"),
     page_size: int = Query(10, ge=1, le=100, description="Items per page"),
     search: Optional[str] = Query(
-        None, description="Search term for First Name, Last Name, Middle Name and Address"
-    )
+        None,
+        description="Search term for First Name, Last Name, Middle Name and Address",
+    ),
 ):
     try:
         db = await get_db()
@@ -43,7 +45,8 @@ async def index(
     except HTTPException as e:
         return JSONResponse(status_code=e.status_code, content={"error": e.detail})
 
-@router.post('/', response_model=Member)
+
+@router.post("/", response_model=Member)
 async def store(request: MemberCreate):
     try:
         db = await get_db()
@@ -55,7 +58,8 @@ async def store(request: MemberCreate):
     except HTTPException as e:
         return JSONResponse(status_code=e.status_code, content={"error": e.detail})
 
-@router.get('/{member_id}', response_model=Member)
+
+@router.get("/{member_id}", response_model=Member)
 async def show(member_id: str):
     try:
         db = await get_db()
@@ -72,7 +76,8 @@ async def show(member_id: str):
     except HTTPException as e:
         return JSONResponse(status_code=e.status_code, content={"error": e.detail})
 
-@router.put('/{member_id}', response_model=Member)
+
+@router.put("/{member_id}", response_model=Member)
 async def update(member_id: str, request: MemberUpdate):
     try:
         db = await get_db()
@@ -90,7 +95,8 @@ async def update(member_id: str, request: MemberUpdate):
     except HTTPException as e:
         return JSONResponse(status_code=e.status_code, content={"error": e.detail})
 
-@router.delete('/{member_id}', response_model=None)
+
+@router.delete("/{member_id}", response_model=None)
 async def delete(member_id: str):
     try:
         db = await get_db()

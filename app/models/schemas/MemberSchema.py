@@ -51,7 +51,7 @@ class MemberUpdate(BaseModel):
 class Member(MemberBase):
     id: PyObjectId = Field(default_factory=PyObjectId, alias="_id")
     tribe_id: PyObjectId
-    life_groupt_id : Optional[PyObjectId]
+    life_groupt_id: Optional[PyObjectId]
     created_at: datetime
     updated_at: datetime
 

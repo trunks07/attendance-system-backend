@@ -49,7 +49,9 @@ class MemberModel:
             ]
 
         total_count = await self.collection.count_documents(query, session=session)
-        cursor = self.collection.find(query, session=session, projection={"password": False})
+        cursor = self.collection.find(
+            query, session=session, projection={"password": False}
+        )
         members = await cursor.skip(skip).limit(limit).to_list(length=limit)
 
         converted_members: List[Dict[str, Any]] = [
@@ -73,7 +75,9 @@ class MemberModel:
             {"_id": result.inserted_id}, projection={"password": False}, session=session
         )
         if not document:
-            raise HTTPException(status_code=500, detail="Failed to retrieve created member")
+            raise HTTPException(
+                status_code=500, detail="Failed to retrieve created member"
+            )
 
         return self._convert_objectids_to_str(document)
 
@@ -125,10 +129,14 @@ class MemberModel:
         return self._convert_objectids_to_str(document) if document else None
 
     async def get_all(
-        self, include_deleted: bool = False, session: Optional[AgnosticClientSession] = None
+        self,
+        include_deleted: bool = False,
+        session: Optional[AgnosticClientSession] = None,
     ) -> List[Dict[str, Any]]:
         query = self._base_query(include_deleted)
-        documents = await self.collection.find(query, session=session).to_list(length=None)
+        documents = await self.collection.find(query, session=session).to_list(
+            length=None
+        )
         return [self._convert_objectids_to_str(doc) for doc in documents]
 
     async def update(
@@ -156,11 +164,15 @@ class MemberModel:
         if not allow_update_deleted:
             query["deleted"] = {"$ne": True}
 
-        result = await self.collection.update_one(query, {"$set": update_dict}, session=session)
+        result = await self.collection.update_one(
+            query, {"$set": update_dict}, session=session
+        )
 
         if result.matched_count == 0:
             # either not found or is deleted (if allow_update_deleted=False)
-            raise HTTPException(status_code=404, detail="Member not found or is deleted")
+            raise HTTPException(
+                status_code=404, detail="Member not found or is deleted"
+            )
 
         document = await self.get_by_id(obj_id, include_deleted=True, session=session)
         if not document:
@@ -189,8 +201,16 @@ class MemberModel:
             return True
 
         # soft delete
-        update = {"$set": {"deleted": True, "deleted_at": datetime.now(), "updated_at": datetime.now()}}
-        result = await self.collection.update_one({"_id": obj_id, "deleted": {"$ne": True}}, update, session=session)
+        update = {
+            "$set": {
+                "deleted": True,
+                "deleted_at": datetime.now(),
+                "updated_at": datetime.now(),
+            }
+        }
+        result = await self.collection.update_one(
+            {"_id": obj_id, "deleted": {"$ne": True}}, update, session=session
+        )
 
         if result.matched_count == 0:
             # either not found or already deleted
@@ -212,14 +232,22 @@ class MemberModel:
             raise HTTPException(status_code=400, detail="Invalid ID format")
         obj_id = ObjectId(member_id)
 
-        update = {"$set": {"deleted": False, "deleted_at": None, "updated_at": datetime.now()}}
-        result = await self.collection.update_one({"_id": obj_id, "deleted": True}, update, session=session)
+        update = {
+            "$set": {"deleted": False, "deleted_at": None, "updated_at": datetime.now()}
+        }
+        result = await self.collection.update_one(
+            {"_id": obj_id, "deleted": True}, update, session=session
+        )
         if result.matched_count == 0:
-            raise HTTPException(status_code=404, detail="Member not found or not deleted")
+            raise HTTPException(
+                status_code=404, detail="Member not found or not deleted"
+            )
 
         document = await self.get_by_id(obj_id, include_deleted=True, session=session)
         if not document:
-            raise HTTPException(status_code=404, detail="Member not found after restore")
+            raise HTTPException(
+                status_code=404, detail="Member not found after restore"
+            )
         return document
 
 
