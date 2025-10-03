@@ -117,19 +117,12 @@ class MemberModel:
         member = await self.get_by_id(
             member_id, include_deleted=include_deleted, session=session
         )
-        if not member:
-            return None
 
-        # load tribe (include deleted tribes so you can still see historical relation)
-        tribe = None
-        try:
-            tribe = await self.tribe_model.get_by_id(
-                member.get("tribe_id"), include_deleted=True, session=session
+        if member:
+            member["tribe"] = await self.tribe_model.get_by_id(
+                member["tribe_id"], session=session
             )
-        except HTTPException:
-            tribe = None
 
-        member["tribe"] = tribe
         return member
 
     async def get_all(
