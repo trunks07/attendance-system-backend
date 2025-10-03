@@ -4,6 +4,7 @@ from bson import ObjectId
 from fastapi import Depends, HTTPException
 from motor.core import AgnosticClientSession
 from motor.motor_asyncio import AsyncIOMotorDatabase
+from pymongo.results import UpdateResult, DeleteResult
 from app.config.database import get_db
 from app.models.schemas.MemberSchema import MemberCreate, MemberUpdate
 from app.models.Tribe import TribeModel
@@ -26,8 +27,12 @@ class MemberModel:
         return document
 
     def _base_query(self, include_deleted: bool = False) -> Dict[str, Any]:
-        # default to excluding soft deleted docs
-        return {} if include_deleted else {"deleted": {"$ne": True}}
+        """
+        Treat a document as NOT deleted if deleted_at is None OR deleted_at doesn't exist.
+        """
+        if include_deleted:
+            return {}
+        return {"$or": [{"deleted_at": None}, {"deleted_at": {"$exists": False}}]}
 
     async def get_member_list(
         self,
@@ -65,9 +70,9 @@ class MemberModel:
     ) -> Dict[str, Any]:
         item_dict: Dict[str, Any] = member_data.model_dump()
 
-        # ensure soft-delete fields are set on create
-        item_dict.setdefault("deleted", False)
-        item_dict.setdefault("deleted_at", None)
+        # ensure deleted_at / timestamps exist
+        item_dict.setdefault("created_at", datetime.now())
+        item_dict.setdefault("updated_at", datetime.now())
 
         result = await self.collection.insert_one(item_dict, session=session)
 
@@ -87,14 +92,18 @@ class MemberModel:
         include_deleted: bool = False,
         session: Optional[AgnosticClientSession] = None,
     ) -> Optional[Dict[str, Any]]:
+        # normalize id variable name for clarity
+        member_obj_id: ObjectId
         if isinstance(member_id, str):
             if not ObjectId.is_valid(member_id):
                 raise HTTPException(status_code=400, detail="Invalid ID format")
-            member_id = ObjectId(member_id)
+            member_obj_id = ObjectId(member_id)
+        else:
+            member_obj_id = member_id  # type: ignore[assignment]
 
-        query = {"_id": member_id}
+        query: Dict[str, Any] = {"_id": member_obj_id}
         if not include_deleted:
-            query["deleted"] = {"$ne": True}
+            query.update(self._base_query(include_deleted))
 
         document = await self.collection.find_one(
             query, projection={"password": False}, session=session
@@ -108,25 +117,19 @@ class MemberModel:
         include_deleted: bool = False,
         session: Optional[AgnosticClientSession] = None,
     ) -> Optional[Dict[str, Any]]:
-        if isinstance(member_id, str):
-            if not ObjectId.is_valid(member_id):
-                raise HTTPException(status_code=400, detail="Invalid ID format")
-            member_id = ObjectId(member_id)
+        member = await self.get_by_id(member_id, include_deleted=include_deleted, session=session)
+        if not member:
+            return None
 
-        query = {"_id": member_id}
-        if not include_deleted:
-            query["deleted"] = {"$ne": True}
+        # load tribe (include deleted tribes so you can still see historical relation)
+        tribe = None
+        try:
+            tribe = await self.tribe_model.get_by_id(member.get("tribe_id"), include_deleted=True, session=session)
+        except HTTPException:
+            tribe = None
 
-        document = await self.collection.find_one(
-            query, projection={"password": False}, session=session
-        )
-
-        if document:
-            document["tribe"] = await self.tribe_model.get_by_id(
-                document["tribe_id"], include_deleted=True, session=session
-            )
-
-        return self._convert_objectids_to_str(document) if document else None
+        member["tribe"] = tribe
+        return member
 
     async def get_all(
         self,
@@ -149,7 +152,7 @@ class MemberModel:
         if not ObjectId.is_valid(member_id):
             raise HTTPException(status_code=400, detail="Invalid ID format")
 
-        obj_id = ObjectId(member_id)
+        member_obj_id = ObjectId(member_id)
         update_dict: Dict[str, Any] = update_data.model_dump(
             exclude_unset=True, exclude_none=True
         )
@@ -160,21 +163,21 @@ class MemberModel:
         if not update_dict:
             raise HTTPException(status_code=400, detail="No update data provided")
 
-        query = {"_id": obj_id}
+        query: Dict[str, Any] = {"_id": member_obj_id}
         if not allow_update_deleted:
-            query["deleted"] = {"$ne": True}
+            query.update(self._base_query(include_deleted=False))
 
-        result = await self.collection.update_one(
+        update_result: UpdateResult = await self.collection.update_one(
             query, {"$set": update_dict}, session=session
-        )
+        )  # type: ignore[assignment]
 
-        if result.matched_count == 0:
+        if update_result.matched_count == 0:
             # either not found or is deleted (if allow_update_deleted=False)
             raise HTTPException(
                 status_code=404, detail="Member not found or is deleted"
             )
 
-        document = await self.get_by_id(obj_id, include_deleted=True, session=session)
+        document = await self.get_by_id(member_obj_id, include_deleted=True, session=session)
         if not document:
             raise HTTPException(status_code=404, detail="Member not found after update")
         return document
@@ -186,38 +189,34 @@ class MemberModel:
         hard_delete: bool = False,
     ) -> bool:
         """
-        Soft-delete by default (set `deleted=True` and `deleted_at`).
+        Soft-delete by default (set `deleted_at` to now).
         If hard_delete=True, actually removes the document.
         """
         if not ObjectId.is_valid(member_id):
             raise HTTPException(status_code=400, detail="Invalid ID format")
 
-        obj_id = ObjectId(member_id)
+        member_obj_id = ObjectId(member_id)
 
         if hard_delete:
-            result = await self.collection.delete_one({"_id": obj_id}, session=session)
-            if result.deleted_count == 0:
+            delete_result: DeleteResult = await self.collection.delete_one({"_id": member_obj_id}, session=session)  # type: ignore[assignment]
+            if delete_result.deleted_count == 0:
                 raise HTTPException(status_code=404, detail="Member not found")
             return True
 
-        # soft delete
-        update = {
-            "$set": {
-                "deleted": True,
-                "deleted_at": datetime.now(),
-                "updated_at": datetime.now(),
-            }
+        # soft delete -> set deleted_at timestamp
+        update_doc = {
+            "$set": {"deleted_at": datetime.now(), "updated_at": datetime.now()}
         }
-        result = await self.collection.update_one(
-            {"_id": obj_id, "deleted": {"$ne": True}}, update, session=session
-        )
+        update_result: UpdateResult = await self.collection.update_one(
+            {"_id": member_obj_id, **self._base_query(include_deleted=False)},
+            update_doc,
+            session=session,
+        )  # type: ignore[assignment]
 
-        if result.matched_count == 0:
-            # either not found or already deleted
-            # decide whether to return True or raise; raising for clarity
-            existing = await self.collection.find_one({"_id": obj_id}, session=session)
+        if update_result.matched_count == 0:
+            existing = await self.collection.find_one({"_id": member_obj_id}, session=session)
             if existing:
-                # already deleted
+                # already soft-deleted
                 return True
             raise HTTPException(status_code=404, detail="Member not found")
         return True
@@ -226,24 +225,22 @@ class MemberModel:
         self, member_id: str, session: Optional[AgnosticClientSession] = None
     ) -> Dict[str, Any]:
         """
-        Restore a soft-deleted member (set deleted=False and clear deleted_at).
+        Restore a soft-deleted member (clear deleted_at).
         """
         if not ObjectId.is_valid(member_id):
             raise HTTPException(status_code=400, detail="Invalid ID format")
-        obj_id = ObjectId(member_id)
+        member_obj_id = ObjectId(member_id)
 
-        update = {
-            "$set": {"deleted": False, "deleted_at": None, "updated_at": datetime.now()}
-        }
-        result = await self.collection.update_one(
-            {"_id": obj_id, "deleted": True}, update, session=session
-        )
-        if result.matched_count == 0:
+        update = {"$set": {"deleted_at": None, "updated_at": datetime.now()}}
+        update_result: UpdateResult = await self.collection.update_one(
+            {"_id": member_obj_id, "deleted_at": {"$ne": None}}, update, session=session
+        )  # type: ignore[assignment]
+        if update_result.matched_count == 0:
             raise HTTPException(
                 status_code=404, detail="Member not found or not deleted"
             )
 
-        document = await self.get_by_id(obj_id, include_deleted=True, session=session)
+        document = await self.get_by_id(member_obj_id, include_deleted=True, session=session)
         if not document:
             raise HTTPException(
                 status_code=404, detail="Member not found after restore"
