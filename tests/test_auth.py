@@ -96,7 +96,7 @@ def test_login_user_not_found(patch_auth, sample_login_payload):
     with TestClient(app) as client:
         resp = client.post("/auth/login", json=sample_login_payload)
 
-    assert resp.status_code == 400
+    assert resp.status_code == 422
     body = resp.json()
     assert "error" in body
 
@@ -110,7 +110,7 @@ def test_login_invalid_credentials(patch_auth, fake_user_doc, sample_login_paylo
     with TestClient(app) as client:
         resp = client.post("/auth/login", json=sample_login_payload)
 
-    assert resp.status_code == 400
+    assert resp.status_code == 401
     body = resp.json()
     assert "error" in body
 

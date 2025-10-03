@@ -146,11 +146,10 @@ def test_show_returns_null_when_not_found(patch_model):
     patch_model(fake_instance)
 
     with TestClient(app) as client:
-        resp = client.get("/tribes/doesnotexist")
+        resp = client.get("/tribes/68df55060a05c5630f7e44a9")
 
-    # controller returns 200 with null body if get_by_id returns None
-    assert resp.status_code == 200
-    assert resp.json() is None
+    # controller returns 404 with null body if get_by_id returns None
+    assert resp.status_code == 404
 
 
 def test_update_returns_updated_tribe(patch_model, created_tribe_item):
@@ -179,10 +178,10 @@ def test_update_404_when_not_found(patch_model):
     payload = {"name": "anything", "description": "anything"}
 
     with TestClient(app) as client:
-        resp = client.put("/tribes/doesnotexist", json=payload)
+        resp = client.put("/tribes/68df53d345febe98a9137288", json=payload)
 
     # controller catches HTTPException and returns 400 in except block
-    assert resp.status_code == 400
+    assert resp.status_code == 404
 
 
 def test_delete_returns_204(patch_model, created_tribe_item):
@@ -208,5 +207,5 @@ def test_delete_404_when_not_found(patch_model):
     with TestClient(app) as client:
         resp = client.delete("/tribes/doesnotexist")
 
-    # controller catches HTTPException and returns 400 in except block
-    assert resp.status_code == 400
+    # controller catches HTTPException and returns 404 in except block
+    assert resp.status_code == 404

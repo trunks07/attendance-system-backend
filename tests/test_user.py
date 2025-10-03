@@ -187,10 +187,10 @@ def test_show_404_when_not_found(patch_model):
     patch_model(fake_instance)
 
     with TestClient(app) as client:
-        resp = client.get("/users/doesnotexist")
+        resp = client.get("/users/68df53d345febe98a9137288")
 
-    # controller catches the HTTPException and returns 400 in except block
-    assert resp.status_code == 400
+    # controller catches the HTTPException and returns 404 in except block
+    assert resp.status_code == 404
 
 
 def test_update_returns_updated_user(patch_model, created_user_item):
