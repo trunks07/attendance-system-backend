@@ -23,25 +23,23 @@ class PyObjectId(ObjectId):
         return ObjectId(value)
 
 
-class UserBase(BaseModel):
-    email: str
-    full_name: Optional[str] = None
+class TribeBase(BaseModel):
+    name: str
+    description: str
 
 
-class UserCreate(UserBase):
-    password: str
+class TribeCreate(TribeBase):
     created_at: datetime = Field(default_factory=datetime.now)
     updated_at: datetime = Field(default_factory=datetime.now)
 
 
-class UserUpdate(BaseModel):
-    email: Optional[str] = None
-    password: Optional[str] = None
-    full_name: Optional[str] = None
+class TribeUpdate(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
     updated_at: datetime = Field(default_factory=datetime.now)
 
 
-class User(UserBase):
+class Tribe(TribeBase):
     id: PyObjectId = Field(default_factory=PyObjectId, alias="_id")
     created_at: datetime
     updated_at: datetime
