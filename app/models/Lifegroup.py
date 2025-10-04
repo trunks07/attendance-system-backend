@@ -167,7 +167,7 @@ class LifegroupModel:
     async def update(
         self,
         lifegroup_id: str,
-        update_data: LifegroupUpdate,
+        update_data: Union[LifegroupUpdate, Dict[str, Any]],
         session: Optional[AgnosticClientSession] = None,
         allow_update_deleted: bool = False,
     ) -> Dict[str, Any]:
