@@ -4,6 +4,7 @@ from fastapi.middleware.gzip import GZipMiddleware
 # Routers
 from app.http.controllers import (
     AuthController,
+    LifegroupController,
     MemberController,
     SystemController,
     TribeController,
@@ -27,6 +28,12 @@ def routing(app: FastAPI):
 
     app.include_router(
         MemberController.router, prefix="/members", dependencies=[Depends(verify_token)]
+    )
+
+    app.include_router(
+        LifegroupController.router,
+        prefix="/lifegroups",
+        dependencies=[Depends(verify_token)],
     )
 
     app.add_middleware(GZipMiddleware)

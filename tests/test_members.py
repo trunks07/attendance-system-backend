@@ -20,6 +20,16 @@ class FakeMemberModel:
         self.update = AsyncMock()
         self.delete = AsyncMock()
 
+class FakeLifegroupModel:
+    def __init__(self, db=None):
+        self.db = db
+
+    async def get_lifegroup_by_member_id(self, member_id, include_deleted=False, session=None):
+        return {"_id": "fake_lg_id", "members": [member_id]}
+
+    async def update(self, lg_id, payload):
+        return {"_id": lg_id, **(payload.__dict__ if hasattr(payload, "__dict__") else {})}
+
 
 # --- fixtures -------------------------------------------------------------
 @pytest.fixture
@@ -53,26 +63,37 @@ def sample_member_payload():
 @pytest.fixture
 def patch_model(monkeypatch):
     """
-    Monkeypatch MemberModel factory, get_db and disable router auth dependencies.
+    Monkeypatch MemberModel factory, LifegroupModel used by the controller,
+    get_db and disable router auth dependencies.
     """
     original_route_dependants = {}
 
     def _patch(fake_instance):
-        # patch MemberModel factory
+        # patch MemberModel factory used by the controller
         monkeypatch.setattr(
             member_controller_module,
             "MemberModel",
             lambda db=None: fake_instance
         )
 
-        # patch get_db
+        # patch LifegroupModel used by the controller (important — patch controller symbol)
+        monkeypatch.setattr(
+            member_controller_module,
+            "LifegroupModel",
+            lambda db=None: FakeLifegroupModel(db)
+        )
+
+        # Also patch the module-level LifegroupModel (optional but harmless)
+        monkeypatch.setattr("app.models.Lifegroup.LifegroupModel", lambda db=None: FakeLifegroupModel(db))
+
+        # patch get_db to return a simple namespace (controller won't call DB because models are faked)
         async def fake_get_db():
             return SimpleNamespace()
         monkeypatch.setattr(member_controller_module, "get_db", fake_get_db)
 
-        # disable verify_token on /member routes
+        # disable verify_token on /members routes (fix path check from "/member" -> "/members")
         for route in app.routes:
-            if isinstance(route, APIRoute) and route.path.startswith("/member"):
+            if isinstance(route, APIRoute) and route.path.startswith("/members"):
                 original_route_dependants[route.path] = route.dependant
                 try:
                     route.dependant.dependencies = []
@@ -129,7 +150,7 @@ def test_store_creates_member(patch_model, sample_member_payload, created_member
 
     with TestClient(app) as client:
         resp = client.post("/members/", json=sample_member_payload)
-    print(resp)
+
     assert resp.status_code == 201
     body = resp.json()
     assert body["_id"] == created_member_item["_id"]
