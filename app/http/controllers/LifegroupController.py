@@ -6,6 +6,7 @@ from app.config.database import get_db
 from app.libs.helper import Helper
 from app.models.schemas.LifegroupSchema import Lifegroup
 from app.models.Lifegroup import LifegroupCreate, LifegroupModel, LifegroupUpdate
+from app.http.requests.AddLifegroupMemeberRequest import LifregroupMemberRequest
 
 router = APIRouter(tags=["Lifegroup"])
 
@@ -101,5 +102,23 @@ async def delete(lifegroup_id: str):
         await LifegroupModel(db).delete(lifegroup_id)
 
         return JSONResponse(status_code=status.HTTP_204_NO_CONTENT, content={})
+    except HTTPException as e:
+        return JSONResponse(status_code=e.status_code, content={"error": e.detail})
+
+@router.patch('/{lifegroup_id}', response_model=Lifegroup)
+async def set_members(lifegroup_id: str, request: LifregroupMemberRequest):
+    try:
+        db = await get_db()
+
+        if not await LifegroupModel(db).get_by_id(lifegroup_id):
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail="Lifegroup not found"
+            )
+
+        result = await LifegroupModel(db).update(lifegroup_id, request)
+
+        return JSONResponse(
+            status_code=status.HTTP_200_OK, content=jsonable_encoder(result)
+        )
     except HTTPException as e:
         return JSONResponse(status_code=e.status_code, content={"error": e.detail})
