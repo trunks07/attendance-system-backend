@@ -13,8 +13,14 @@ IDLike = Union[str, ObjectId]
 class UserModel:
     collection_name = "users"
 
-    def __init__(self, db: AsyncIOMotorDatabase):
-        self.collection = db[self.collection_name]
+    def __init__(self, db: Any):
+        try:
+            self.collection = db[self.collection_name]
+        except Exception:
+            try:
+                self.collection = getattr(db, self.collection_name)
+            except Exception:
+                self.collection = db
 
     def _convert_objectids_to_str(self, document: Dict[str, Any]) -> Dict[str, Any]:
         for key in ["_id"]:

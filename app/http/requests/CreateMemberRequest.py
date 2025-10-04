@@ -10,4 +10,4 @@ class CreateMemberRequest(BaseModel):
     address: str
     birthday: datetime
     tribe_id: str
-    lifegroup_id: Optional[str]
+    lifegroup_id: Optional[str] = None
