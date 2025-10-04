@@ -109,9 +109,7 @@ class MemberModel:
         if not include_deleted:
             query.update(self._base_query(include_deleted))
 
-        document = await self.collection.find_one(
-            query, session=session
-        )
+        document = await self.collection.find_one(query, session=session)
 
         return self._convert_objectids_to_str(document) if document else None
 
@@ -162,7 +160,9 @@ class MemberModel:
         if not include_deleted:
             query.update(self._base_query(include_deleted))
 
-        documents = await self.collection.find(query, session=session).to_list(length=None)
+        documents = await self.collection.find(query, session=session).to_list(
+            length=None
+        )
 
         return [self._convert_objectids_to_str(doc) for doc in documents]
 
@@ -221,8 +221,7 @@ class MemberModel:
 
         if hard_delete:
             delete_result: DeleteResult = await self.collection.delete_one(
-                {"_id": member_obj_id},
-                session=session
+                {"_id": member_obj_id}, session=session
             )
 
             if delete_result.deleted_count == 0:

@@ -3,14 +3,15 @@ from fastapi import APIRouter, HTTPException, Query, status
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
 from app.config.database import get_db
-from app.libs.helper import Helper
-from app.models.schemas.LifegroupSchema import Lifegroup
-from app.models.Lifegroup import LifegroupCreate, LifegroupModel, LifegroupUpdate
 from app.http.requests.AddLifegroupMemeberRequest import LifregroupMemberRequest
+from app.libs.helper import Helper
+from app.models.Lifegroup import LifegroupCreate, LifegroupModel, LifegroupUpdate
+from app.models.schemas.LifegroupSchema import Lifegroup
 
 router = APIRouter(tags=["Lifegroup"])
 
-@router.get('/', response_model=list[Lifegroup])
+
+@router.get("/", response_model=list[Lifegroup])
 async def index(
     page: int = Query(1, ge=1, description="Page number"),
     page_size: int = Query(10, ge=1, le=100, description="Items per page"),
@@ -44,7 +45,8 @@ async def index(
     except HTTPException as e:
         return JSONResponse(status_code=e.status_code, content={"error": e.detail})
 
-@router.post('/', response_model=Lifegroup)
+
+@router.post("/", response_model=Lifegroup)
 async def store(request: LifegroupCreate):
     try:
         db = await get_db()
@@ -56,7 +58,8 @@ async def store(request: LifegroupCreate):
     except HTTPException as e:
         return JSONResponse(status_code=e.status_code, content={"error": e.detail})
 
-@router.get('/{lifegroup_id}', response_model=Lifegroup)
+
+@router.get("/{lifegroup_id}", response_model=Lifegroup)
 async def show(lifegroup_id: str):
     try:
         db = await get_db()
@@ -71,7 +74,8 @@ async def show(lifegroup_id: str):
     except HTTPException as e:
         return JSONResponse(status_code=e.status_code, content={"error": e.detail})
 
-@router.put('/{lifegroup_id}', response_model=Lifegroup)
+
+@router.put("/{lifegroup_id}", response_model=Lifegroup)
 async def update(lifegroup_id: str, request: LifegroupUpdate):
     try:
         db = await get_db()
@@ -89,7 +93,8 @@ async def update(lifegroup_id: str, request: LifegroupUpdate):
     except HTTPException as e:
         return JSONResponse(status_code=e.status_code, content={"error": e.detail})
 
-@router.delete('/{lifegroup_id}', response_model=None)
+
+@router.delete("/{lifegroup_id}", response_model=None)
 async def delete(lifegroup_id: str):
     try:
         db = await get_db()
@@ -105,7 +110,8 @@ async def delete(lifegroup_id: str):
     except HTTPException as e:
         return JSONResponse(status_code=e.status_code, content={"error": e.detail})
 
-@router.patch('/{lifegroup_id}', response_model=Lifegroup)
+
+@router.patch("/{lifegroup_id}", response_model=Lifegroup)
 async def set_members(lifegroup_id: str, request: LifregroupMemberRequest):
     try:
         db = await get_db()

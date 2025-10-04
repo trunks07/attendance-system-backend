@@ -3,13 +3,13 @@ from fastapi import APIRouter, HTTPException, Query, status
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
 from app.config.database import get_db
-from app.libs.helper import Helper
-from app.models.Member import MemberCreate, MemberModel, MemberUpdate
-from app.models.schemas.MemberSchema import Member
 from app.http.requests.CreateMemberRequest import CreateMemberRequest
 from app.http.requests.UpdateMemberRequest import UpdateMemberRequest
+from app.libs.helper import Helper
 from app.models.Lifegroup import LifegroupModel
+from app.models.Member import MemberCreate, MemberModel, MemberUpdate
 from app.models.schemas.LifegroupSchema import LifegroupUpdate
+from app.models.schemas.MemberSchema import Member
 
 router = APIRouter(tags=["Member"])
 
@@ -57,19 +57,21 @@ async def store(request: CreateMemberRequest):
         payload = request.model_dump()
         result = await MemberModel(db).create(MemberCreate(**payload))
 
-        if payload['lifegroup_id']:
-            lifegroup = await LifegroupModel(db).get_by_id(payload['lifegroup_id'])
-            
+        if payload["lifegroup_id"]:
+            lifegroup = await LifegroupModel(db).get_by_id(payload["lifegroup_id"])
+
             if not lifegroup:
                 raise HTTPException(
                     status_code=status.HTTP_404_NOT_FOUND, detail="Lifegroup not found"
                 )
 
             # Set the members of the LG
-            existing_members = lifegroup['members']
-            members = [*existing_members, result["_id"]]    
+            existing_members = lifegroup["members"]
+            members = [*existing_members, result["_id"]]
 
-            await LifegroupModel(db).update(payload['lifegroup_id'], LifegroupUpdate(**{'members': members}))
+            await LifegroupModel(db).update(
+                payload["lifegroup_id"], LifegroupUpdate(**{"members": members})
+            )
 
         return JSONResponse(
             status_code=status.HTTP_201_CREATED, content=jsonable_encoder(result)
@@ -108,28 +110,38 @@ async def update(member_id: str, request: UpdateMemberRequest):
                 status_code=status.HTTP_404_NOT_FOUND, detail="Member not found"
             )
 
-        result = await MemberModel(db).update(member_id, LifegroupUpdate(**payload))
+        result = await MemberModel(db).update(member_id, MemberUpdate(**payload))
 
         if payload["lifegroup_id"]:
-            lifegroup = await LifegroupModel(db).get_by_id(payload['lifegroup_id'])
-            
+            lifegroup = await LifegroupModel(db).get_by_id(payload["lifegroup_id"])
+
             if not lifegroup:
                 raise HTTPException(
                     status_code=status.HTTP_404_NOT_FOUND, detail="Lifegroup not found"
                 )
 
             # Reset the member lists of the old lifegroup
-            old_lg = await LifegroupModel(db).get_lifegroup_by_member_id(existing_data["_id"])
+            old_lg = await LifegroupModel(db).get_lifegroup_by_member_id(
+                existing_data["_id"]
+            )
             if old_lg:
-                existing_members = old_lg['members']
-                old_lg_members = [member for member in existing_members if member != existing_data["_id"]]    
-                await LifegroupModel(db).update(old_lg['_id'], LifegroupUpdate(**{'members': old_lg_members}))
+                existing_members = old_lg["members"]
+                old_lg_members = [
+                    member
+                    for member in existing_members
+                    if member != existing_data["_id"]
+                ]
+                await LifegroupModel(db).update(
+                    old_lg["_id"], LifegroupUpdate(**{"members": old_lg_members})
+                )
 
             # Set the members of the member's new lifegroup
-            existing_members = lifegroup['members']
-            members = [*existing_members, result["_id"]]    
+            existing_members = lifegroup["members"]
+            members = [*existing_members, result["_id"]]
 
-            await LifegroupModel(db).update(payload['lifegroup_id'], LifegroupUpdate(**{'members': members}))
+            await LifegroupModel(db).update(
+                payload["lifegroup_id"], LifegroupUpdate(**{"members": members})
+            )
 
         return JSONResponse(
             status_code=status.HTTP_200_OK, content=jsonable_encoder(result)
@@ -150,11 +162,17 @@ async def delete(member_id: str):
             )
 
         # Reset the member lists of the old lifegroup
-        old_lg = await LifegroupModel(db).get_lifegroup_by_member_id(existing_data["_id"])
+        old_lg = await LifegroupModel(db).get_lifegroup_by_member_id(
+            existing_data["_id"]
+        )
         if old_lg:
-            existing_members = old_lg['members']
-            old_lg_members = [member for member in existing_members if member != existing_data["_id"]]    
-            await LifegroupModel(db).update(old_lg['_id'], LifegroupUpdate(**{'members': old_lg_members}))
+            existing_members = old_lg["members"]
+            old_lg_members = [
+                member for member in existing_members if member != existing_data["_id"]
+            ]
+            await LifegroupModel(db).update(
+                old_lg["_id"], LifegroupUpdate(**{"members": old_lg_members})
+            )
 
         await MemberModel(db).delete(member_id)
 

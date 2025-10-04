@@ -6,8 +6,8 @@ from motor.core import AgnosticClientSession
 from motor.motor_asyncio import AsyncIOMotorDatabase
 from pymongo.results import DeleteResult, UpdateResult
 from app.config.database import get_db
-from app.models.schemas.LifegroupSchema import LifegroupCreate, LifegroupUpdate
 from app.models.Member import MemberModel
+from app.models.schemas.LifegroupSchema import LifegroupCreate, LifegroupUpdate
 from app.models.Tribe import TribeModel
 
 IDLike = Union[str, ObjectId]
@@ -66,7 +66,9 @@ class LifegroupModel:
         return converted_lifegroups, total_count
 
     async def create(
-        self, lifegroup_data: LifegroupCreate, session: Optional[AgnosticClientSession] = None
+        self,
+        lifegroup_data: LifegroupCreate,
+        session: Optional[AgnosticClientSession] = None,
     ) -> Dict[str, Any]:
         item_dict = lifegroup_data.model_dump()
         item_dict.setdefault("created_at", datetime.now())
@@ -106,7 +108,7 @@ class LifegroupModel:
 
         document = await self.collection.find_one(query, session=session)
         return self._convert_objectids_to_str(document) if document else None
-    
+
     async def get_full_details(
         self,
         lifegroup_id: IDLike,
@@ -119,7 +121,7 @@ class LifegroupModel:
             document["leader"] = await self.member_model.get_by_id(
                 document["leader_id"], session=session
             )
-            
+
             document["tribe"] = await self.tribe_model.get_by_id(
                 document["tribe_id"], session=session
             )
@@ -188,13 +190,17 @@ class LifegroupModel:
         )  # type: ignore[assignment]
 
         if update_result.matched_count == 0:
-            raise HTTPException(status_code=404, detail="Lifegroup not found or is deleted")
+            raise HTTPException(
+                status_code=404, detail="Lifegroup not found or is deleted"
+            )
 
         document = await self.get_by_id(
             lifegroup_obj_id, include_deleted=True, session=session
         )
         if not document:
-            raise HTTPException(status_code=404, detail="Lifegroup not found after update")
+            raise HTTPException(
+                status_code=404, detail="Lifegroup not found after update"
+            )
         return document
 
     async def delete(
@@ -245,7 +251,9 @@ class LifegroupModel:
         lifegroup_obj_id = ObjectId(lifegroup_id)
         update = {"$set": {"deleted_at": None, "updated_at": datetime.now()}}
         update_result: UpdateResult = await self.collection.update_one(
-            {"_id": lifegroup_obj_id, "deleted_at": {"$ne": None}}, update, session=session
+            {"_id": lifegroup_obj_id, "deleted_at": {"$ne": None}},
+            update,
+            session=session,
         )  # type: ignore[assignment]
 
         if update_result.matched_count == 0:
@@ -257,7 +265,9 @@ class LifegroupModel:
             lifegroup_obj_id, include_deleted=True, session=session
         )
         if not document:
-            raise HTTPException(status_code=404, detail="Lifegroup not found after restore")
+            raise HTTPException(
+                status_code=404, detail="Lifegroup not found after restore"
+            )
         return document
 
 

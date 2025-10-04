@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from  app.models.schemas.LifegroupSchema import PyObjectId
+from app.models.schemas.LifegroupSchema import PyObjectId
 
 
 class LifregroupMemberRequest(BaseModel):
