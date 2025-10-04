@@ -149,7 +149,7 @@ class LifegroupModel:
         member_id: str,
         include_deleted: bool = False,
         session: Optional[AgnosticClientSession] = None,
-    ) -> List[Dict[str, Any]]:
+    ) -> Optional[Dict[str, Any]]:
         if not ObjectId.is_valid(member_id):
             raise HTTPException(status_code=400, detail="Invalid member ID format")
 
