@@ -135,6 +135,26 @@ class LifegroupModel:
         )
         return [self._convert_objectids_to_str(doc) for doc in documents]
 
+    async def get_lifegroup_by_member_id(
+        self,
+        member_id: str,
+        include_deleted: bool = False,
+        session: Optional[AgnosticClientSession] = None,
+    ) -> List[Dict[str, Any]]:
+        if not ObjectId.is_valid(member_id):
+            raise HTTPException(status_code=400, detail="Invalid member ID format")
+
+        member_obj_id = ObjectId(member_id)
+
+        query: Dict[str, Any] = {"members": member_obj_id}
+        if not include_deleted:
+            # only non-deleted documents
+            query.update(self._base_query(include_deleted))
+
+        document = await self.collection.find_one(query, session=session)
+
+        return self._convert_objectids_to_str(document) if document else None
+
     async def update(
         self,
         lifegroup_id: str,
