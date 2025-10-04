@@ -121,10 +121,19 @@ async def set_members(lifegroup_id: str, request: LifregroupMemberRequest):
                 status_code=status.HTTP_404_NOT_FOUND, detail="Lifegroup not found"
             )
 
-        result = await LifegroupModel(db).update(lifegroup_id, request)
+        # convert incoming request -> dict so it matches LifegroupModel.update's accepted types
+        if hasattr(request, "model_dump"):
+            payload: dict = request.model_dump(exclude_unset=True, exclude_none=True)
+        else:
+            # fallback if request is a plain dataclass/dict-like
+            payload = dict(request) if isinstance(request, dict) else {}
+
+        # pass a dict (or use LifegroupUpdate(**payload) if you prefer strict typing)
+        result = await LifegroupModel(db).update(lifegroup_id, payload)
 
         return JSONResponse(
             status_code=status.HTTP_200_OK, content=jsonable_encoder(result)
         )
     except HTTPException as e:
         return JSONResponse(status_code=e.status_code, content={"error": e.detail})
+

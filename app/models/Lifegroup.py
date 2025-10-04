@@ -175,7 +175,21 @@ class LifegroupModel:
             raise HTTPException(status_code=400, detail="Invalid ID format")
 
         lifegroup_obj_id = ObjectId(lifegroup_id)
-        update_dict = update_data.model_dump(exclude_unset=True, exclude_none=True)
+
+        # Normalize update_data -> update_dict: Dict[str, Any]
+        if hasattr(update_data, "model_dump"):
+            # Pydantic v2 model
+            update_dict: Dict[str, Any] = update_data.model_dump(
+                exclude_unset=True, exclude_none=True
+            )
+        elif isinstance(update_data, dict):
+            # Plain dict: filter out None values (approx exclude_none behavior)
+            update_dict = {k: v for k, v in update_data.items() if v is not None}
+        else:
+            # Defensive: unexpected type
+            raise HTTPException(status_code=400, detail="Invalid update payload type")
+
+        # Always set/update timestamp
         update_dict["updated_at"] = datetime.now()
 
         if not update_dict:

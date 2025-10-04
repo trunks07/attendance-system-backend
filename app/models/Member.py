@@ -95,7 +95,7 @@ class MemberModel:
         member_id: IDLike,
         include_deleted: bool = False,
         session: Optional[AgnosticClientSession] = None,
-    ) -> Optional[Dict[str, Any]]:
+    ) -> List[Dict[str, Any]]:
         # normalize id variable name for clarity
         member_obj_id: ObjectId
         if isinstance(member_id, str):
