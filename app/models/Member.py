@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Union, overload
 from bson import ObjectId
 from fastapi import Depends, HTTPException
 from motor.core import AgnosticClientSession
@@ -26,21 +26,28 @@ class MemberModel:
 
         self.tribe_model = TribeModel(db)
 
+    @overload
+    def _convert_objectids_to_str(self, document: Dict[str, Any]) -> Dict[str, Any]: ...
+
+    @overload
+    def _convert_objectids_to_str(
+        self, document: List[Dict[str, Any]]
+    ) -> List[Dict[str, Any]]: ...
+
     def _convert_objectids_to_str(
         self, document: Union[Dict[str, Any], List[Dict[str, Any]]]
     ) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
         """
         Normalize ObjectId fields to strings.
 
-        Accept either a single document (dict) or a list of documents and convert
-        in-place (returns a new transformed object for lists).
+        Overloaded so mypy knows exactly what type is returned for dict vs list inputs.
         """
-        # If a list of documents, convert each one
+        # If a list of documents, convert each one (returns List[Dict])
         if isinstance(document, list):
+            # here `doc` is Dict[str, Any], so recursive call matches the first overload
             return [self._convert_objectids_to_str(doc) for doc in document]
 
-        # Now `document` is a dict (or behaves like one)
-        # Make a shallow copy so we don't unexpectedly mutate caller-owned objects
+        # Now `document` is a dict
         doc_copy: Dict[str, Any] = dict(document) if document is not None else {}
 
         for key in ["_id", "tribe_id", "life_group_id"]:
@@ -51,7 +58,9 @@ class MemberModel:
                     doc_copy[key] = str(val)
                 # convert lists of ObjectId -> list[str]
                 elif isinstance(val, list):
-                    doc_copy[key] = [str(v) if isinstance(v, ObjectId) else v for v in val]
+                    doc_copy[key] = [
+                        str(v) if isinstance(v, ObjectId) else v for v in val
+                    ]
 
         return doc_copy
 
@@ -113,10 +122,10 @@ class MemberModel:
         return self._convert_objectids_to_str(document)
 
     async def get_by_id(
-    self,
-    member_id: IDLike,
-    include_deleted: bool = False,
-    session: Optional[AgnosticClientSession] = None,
+        self,
+        member_id: IDLike,
+        include_deleted: bool = False,
+        session: Optional[AgnosticClientSession] = None,
     ) -> Optional[Dict[str, Any]]:
         # normalize id variable name for clarity
         member_obj_id: ObjectId
@@ -147,7 +156,11 @@ class MemberModel:
 
         if member:
             tribe_id = member.get("tribe_id") if isinstance(member, dict) else None
-            member["tribe"] = await self.tribe_model.get_by_id(tribe_id, session=session) if tribe_id else None
+            member["tribe"] = (
+                await self.tribe_model.get_by_id(tribe_id, session=session)
+                if tribe_id
+                else None
+            )
 
         return member
 
@@ -187,7 +200,9 @@ class MemberModel:
         if not include_deleted:
             query.update(self._base_query(include_deleted))
 
-        documents = await self.collection.find(query, session=session).to_list(length=None)
+        documents = await self.collection.find(query, session=session).to_list(
+            length=None
+        )
         return [self._convert_objectids_to_str(doc) for doc in documents]
 
     async def update(
