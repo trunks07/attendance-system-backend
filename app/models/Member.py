@@ -26,12 +26,34 @@ class MemberModel:
 
         self.tribe_model = TribeModel(db)
 
-    def _convert_objectids_to_str(self, document: Dict[str, Any]) -> Dict[str, Any]:
-        # defensive copy not required here but could be used if mutation is concerning
+    def _convert_objectids_to_str(
+        self, document: Union[Dict[str, Any], List[Dict[str, Any]]]
+    ) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
+        """
+        Normalize ObjectId fields to strings.
+
+        Accept either a single document (dict) or a list of documents and convert
+        in-place (returns a new transformed object for lists).
+        """
+        # If a list of documents, convert each one
+        if isinstance(document, list):
+            return [self._convert_objectids_to_str(doc) for doc in document]
+
+        # Now `document` is a dict (or behaves like one)
+        # Make a shallow copy so we don't unexpectedly mutate caller-owned objects
+        doc_copy: Dict[str, Any] = dict(document) if document is not None else {}
+
         for key in ["_id", "tribe_id", "life_group_id"]:
-            if key in document and isinstance(document[key], ObjectId):
-                document[key] = str(document[key])
-        return document
+            if key in doc_copy:
+                val = doc_copy[key]
+                # convert single ObjectId -> str
+                if isinstance(val, ObjectId):
+                    doc_copy[key] = str(val)
+                # convert lists of ObjectId -> list[str]
+                elif isinstance(val, list):
+                    doc_copy[key] = [str(v) if isinstance(v, ObjectId) else v for v in val]
+
+        return doc_copy
 
     def _base_query(self, include_deleted: bool = False) -> Dict[str, Any]:
         if include_deleted:
@@ -91,11 +113,11 @@ class MemberModel:
         return self._convert_objectids_to_str(document)
 
     async def get_by_id(
-        self,
-        member_id: IDLike,
-        include_deleted: bool = False,
-        session: Optional[AgnosticClientSession] = None,
-    ) -> List[Dict[str, Any]]:
+    self,
+    member_id: IDLike,
+    include_deleted: bool = False,
+    session: Optional[AgnosticClientSession] = None,
+    ) -> Optional[Dict[str, Any]]:
         # normalize id variable name for clarity
         member_obj_id: ObjectId
         if isinstance(member_id, str):
@@ -124,9 +146,8 @@ class MemberModel:
         )
 
         if member:
-            member["tribe"] = await self.tribe_model.get_by_id(
-                member["tribe_id"], session=session
-            )
+            tribe_id = member.get("tribe_id") if isinstance(member, dict) else None
+            member["tribe"] = await self.tribe_model.get_by_id(tribe_id, session=session) if tribe_id else None
 
         return member
 
@@ -143,27 +164,30 @@ class MemberModel:
 
     async def get_by_ids(
         self,
-        ids: list[IDLike],
+        ids: List[IDLike],
         include_deleted: bool = False,
         session: Optional[AgnosticClientSession] = None,
-    ) -> Optional[Dict[str, Any]]:
-        # normalize id variable name for clarity
-        member_obj_id = []
+    ) -> List[Dict[str, Any]]:
+        """
+        Return a list of members matching the provided IDs.
+        """
+        member_obj_ids: List[ObjectId] = []
 
-        for id in ids:
-            if not ObjectId.is_valid(id):
-                raise HTTPException(status_code=400, detail="Invalid ID format")
+        for _id in ids:
+            if isinstance(_id, str):
+                if not ObjectId.is_valid(_id):
+                    raise HTTPException(status_code=400, detail="Invalid ID format")
+                member_obj_ids.append(ObjectId(_id))
+            elif isinstance(_id, ObjectId):
+                member_obj_ids.append(_id)
+            else:
+                raise HTTPException(status_code=400, detail="Invalid ID type")
 
-            member_obj_id.append(ObjectId(id))
-
-        query: Dict[str, Any] = {"_id": {"$in": member_obj_id}}
+        query: Dict[str, Any] = {"_id": {"$in": member_obj_ids}}
         if not include_deleted:
             query.update(self._base_query(include_deleted))
 
-        documents = await self.collection.find(query, session=session).to_list(
-            length=None
-        )
-
+        documents = await self.collection.find(query, session=session).to_list(length=None)
         return [self._convert_objectids_to_str(doc) for doc in documents]
 
     async def update(
