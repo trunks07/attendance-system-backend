@@ -1,14 +1,14 @@
-from typing import Optional, Any, Dict, List
+from typing import Any, Dict, List, Optional
 from fastapi import APIRouter, HTTPException, Query, status
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
 from app.config.database import get_db
-from app.libs.helper import Helper
-from app.models.Member import MemberCreate, MemberModel, MemberUpdate
-from app.models.schemas.MemberSchema import Member
 from app.http.requests.CreateMemberRequest import CreateMemberRequest
 from app.http.requests.UpdateMemberRequest import UpdateMemberRequest
+from app.libs.helper import Helper
 from app.models.Lifegroup import LifegroupModel
+from app.models.Member import MemberCreate, MemberModel, MemberUpdate
+from app.models.schemas.MemberSchema import Member
 
 router = APIRouter(tags=["Member"])
 
@@ -71,12 +71,18 @@ async def store(request: CreateMemberRequest):
                 existing_members = lifegroup.get("members", []) or []
             elif isinstance(lifegroup, list) and lifegroup:
                 # defensive fallback: take first doc if model unexpectedly returned list
-                existing_members = lifegroup[0].get("members", []) if isinstance(lifegroup[0], dict) else []
+                existing_members = (
+                    lifegroup[0].get("members", [])
+                    if isinstance(lifegroup[0], dict)
+                    else []
+                )
 
             members = [*existing_members, result["_id"]]
 
             # Pass a plain dict to update (LifegroupModel.update should accept dicts)
-            await LifegroupModel(db).update(payload["lifegroup_id"], {"members": members})
+            await LifegroupModel(db).update(
+                payload["lifegroup_id"], {"members": members}
+            )
 
         return JSONResponse(
             status_code=status.HTTP_201_CREATED, content=jsonable_encoder(result)
@@ -135,21 +141,33 @@ async def update(member_id: str, request: UpdateMemberRequest):
                 if isinstance(old_lg, dict):
                     existing_members = old_lg.get("members", []) or []
                 elif isinstance(old_lg, list) and old_lg:
-                    existing_members = old_lg[0].get("members", []) if isinstance(old_lg[0], dict) else []
+                    existing_members = (
+                        old_lg[0].get("members", [])
+                        if isinstance(old_lg[0], dict)
+                        else []
+                    )
                 else:
                     existing_members = []
 
                 old_lg_members = [
-                    member for member in existing_members if member != existing_data["_id"]
+                    member
+                    for member in existing_members
+                    if member != existing_data["_id"]
                 ]
 
-                await LifegroupModel(db).update(old_lg["_id"], {"members": old_lg_members})
+                await LifegroupModel(db).update(
+                    old_lg["_id"], {"members": old_lg_members}
+                )
 
             # Set the members of the member's new lifegroup
             if isinstance(lifegroup, dict):
                 existing_members = lifegroup.get("members", []) or []
             elif isinstance(lifegroup, list) and lifegroup:
-                existing_members = lifegroup[0].get("members", []) if isinstance(lifegroup[0], dict) else []
+                existing_members = (
+                    lifegroup[0].get("members", [])
+                    if isinstance(lifegroup[0], dict)
+                    else []
+                )
             else:
                 existing_members = []
 
@@ -183,7 +201,9 @@ async def delete(member_id: str):
             if isinstance(old_lg, dict):
                 existing_members = old_lg.get("members", []) or []
             elif isinstance(old_lg, list) and old_lg:
-                existing_members = old_lg[0].get("members", []) if isinstance(old_lg[0], dict) else []
+                existing_members = (
+                    old_lg[0].get("members", []) if isinstance(old_lg[0], dict) else []
+                )
             else:
                 existing_members = []
 
