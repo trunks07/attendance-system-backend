@@ -1,7 +1,6 @@
 from fastapi import Depends, FastAPI
 from fastapi.middleware.gzip import GZipMiddleware
 
-# Routers
 from app.http.controllers import (
     AuthController,
     LifegroupController,
@@ -9,6 +8,7 @@ from app.http.controllers import (
     SystemController,
     TribeController,
     UserController,
+    AttendanceController,
 )
 from app.services.AuthService import verify_token
 
@@ -33,6 +33,12 @@ def routing(app: FastAPI):
     app.include_router(
         LifegroupController.router,
         prefix="/lifegroups",
+        dependencies=[Depends(verify_token)],
+    )
+
+    app.include_router(
+        AttendanceController.router,
+        prefix="/attendances",
         dependencies=[Depends(verify_token)],
     )
 

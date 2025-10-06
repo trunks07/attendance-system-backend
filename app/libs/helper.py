@@ -1,3 +1,5 @@
+from datetime import datetime
+import re
 from typing import Optional
 
 
@@ -23,3 +25,45 @@ class Helper:
                 "search_term": search,
             },
         }
+
+    @staticmethod
+    def parse_flexible_datetime(dt_str: str) -> datetime:
+        if not dt_str or not isinstance(dt_str, str):
+            raise ValueError("Invalid datetime")
+
+        s = dt_str.strip()
+
+        if s.endswith("Z"):
+            s = s[:-1] + "+00:00"
+
+        s = s.replace(" ", "T")
+        m = re.search(r"([+-])(\d{2})(\d{2})$", s)
+        if m:
+            sign, hh, mm = m.groups()
+            s = re.sub(r"([+-]\d{4})$", f"{sign}{hh}:{mm}", s)
+
+        # Try fromisoformat first (handles fractional seconds and +HH:MM offsets)
+        try:
+            return datetime.fromisoformat(s)
+        except Exception:
+            pass
+
+        # Fallback strptime patterns (no timezone awareness here)
+        strptime_patterns = [
+            "%Y-%m-%dT%H:%M:%S.%f",  # 2025-10-06T08:00:00.123
+            "%Y-%m-%dT%H:%M:%S",     # 2025-10-06T08:00:00
+            "%Y-%m-%dT%H:%M",        # 2025-10-06T08:00
+            "%Y-%m-%d %H:%M:%S.%f",  # 2025-10-06 08:00:00.123
+            "%Y-%m-%d %H:%M:%S",     # 2025-10-06 08:00:00
+            "%Y-%m-%d %H:%M",        # 2025-10-06 08:00
+            "%Y-%m-%d",              # 2025-10-06  (interpreted as midnight)
+        ]
+
+        for fmt in strptime_patterns:
+            try:
+                return datetime.strptime(dt_str, fmt)
+            except Exception:
+                continue
+
+        # Nothing matched
+        raise ValueError(f"Unrecognized datetime format: {dt_str}")
