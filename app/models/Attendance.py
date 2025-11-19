@@ -6,8 +6,8 @@ from motor.core import AgnosticClientSession
 from motor.motor_asyncio import AsyncIOMotorDatabase
 from pymongo.results import DeleteResult, UpdateResult
 from app.config.database import get_db
-from app.models.schemas.AttendanceSchema import AttendanceCreate, AttendanceUpdate
 from app.libs.helper import Helper
+from app.models.schemas.AttendanceSchema import AttendanceCreate, AttendanceUpdate
 
 IDLike = Union[str, ObjectId]
 
@@ -46,7 +46,7 @@ class AttendanceModel:
         search_term: Optional[str] = None,
         tribe: Optional[str] = None,
         start_datetime: Optional[str] = None,  # accepts typical frontend formats
-        end_datetime: Optional[str] = None,    # accepts typical frontend formats
+        end_datetime: Optional[str] = None,  # accepts typical frontend formats
         include_deleted: bool = False,
         session: Optional[AgnosticClientSession] = None,
     ) -> Tuple[List[Dict[str, Any]], int]:
@@ -56,8 +56,16 @@ class AttendanceModel:
         date_range_spec: Optional[Dict[str, Any]] = None
         if start_datetime or end_datetime:
             try:
-                start_dt = Helper.parse_flexible_datetime(start_datetime) if start_datetime else None
-                end_dt = Helper.parse_flexible_datetime(end_datetime) if end_datetime else None
+                start_dt = (
+                    Helper.parse_flexible_datetime(start_datetime)
+                    if start_datetime
+                    else None
+                )
+                end_dt = (
+                    Helper.parse_flexible_datetime(end_datetime)
+                    if end_datetime
+                    else None
+                )
             except ValueError as e:
                 raise HTTPException(status_code=400, detail=str(e))
 
@@ -131,7 +139,14 @@ class AttendanceModel:
             if not ObjectId.is_valid(tribe):
                 raise HTTPException(status_code=400, detail="Invalid tribe id format")
             pipeline.append(
-                {"$match": {"$or": [{"member.tribe_id": ObjectId(tribe)}, {"member.tribe._id": ObjectId(tribe)}]}}
+                {
+                    "$match": {
+                        "$or": [
+                            {"member.tribe_id": ObjectId(tribe)},
+                            {"member.tribe._id": ObjectId(tribe)},
+                        ]
+                    }
+                }
             )
 
         # Count total results before pagination
@@ -147,7 +162,9 @@ class AttendanceModel:
         attendances = await cursor.to_list(length=limit)
 
         # Recursively convert ObjectId -> str for all results
-        converted_attendances = [self._convert_objectids_recursive(t) for t in attendances]
+        converted_attendances = [
+            self._convert_objectids_recursive(t) for t in attendances
+        ]
 
         return converted_attendances, total_count
 
@@ -155,7 +172,7 @@ class AttendanceModel:
         self,
         member_id: Optional[str] = None,
         start_datetime: Optional[str] = None,  # accepts typical frontend formats
-        end_datetime: Optional[str] = None,    # accepts typical frontend formats
+        end_datetime: Optional[str] = None,  # accepts typical frontend formats
         include_deleted: bool = False,
         session: Optional[AgnosticClientSession] = None,
     ) -> List[Dict[str, Any]]:
@@ -171,8 +188,16 @@ class AttendanceModel:
         date_range_spec: Optional[Dict[str, Any]] = None
         if start_datetime or end_datetime:
             try:
-                start_dt = Helper.parse_flexible_datetime(start_datetime) if start_datetime else None
-                end_dt = Helper.parse_flexible_datetime(end_datetime) if end_datetime else None
+                start_dt = (
+                    Helper.parse_flexible_datetime(start_datetime)
+                    if start_datetime
+                    else None
+                )
+                end_dt = (
+                    Helper.parse_flexible_datetime(end_datetime)
+                    if end_datetime
+                    else None
+                )
             except ValueError as e:
                 raise HTTPException(status_code=400, detail=str(e))
 
@@ -217,12 +242,16 @@ class AttendanceModel:
 
         # Run aggregation and return all matching documents (no pagination)
         cursor = self.collection.aggregate(pipeline, session=session)
-        attendances = await cursor.to_list(length=None)  # length=None => return all results
+        attendances = await cursor.to_list(
+            length=None
+        )  # length=None => return all results
 
         return [self._convert_objectids_recursive(t) for t in attendances]
 
     async def create(
-        self, attendance_data: AttendanceCreate, session: Optional[AgnosticClientSession] = None
+        self,
+        attendance_data: AttendanceCreate,
+        session: Optional[AgnosticClientSession] = None,
     ) -> Dict[str, Any]:
         item_dict = attendance_data.model_dump()
         item_dict.setdefault("created_at", datetime.now())
@@ -270,12 +299,7 @@ class AttendanceModel:
                     "as": "member",
                 }
             },
-            {
-                "$unwind": {
-                    "path": "$member",
-                    "preserveNullAndEmptyArrays": True
-                }
-            },
+            {"$unwind": {"path": "$member", "preserveNullAndEmptyArrays": True}},
             {
                 "$lookup": {
                     "from": "tribes",
@@ -284,24 +308,9 @@ class AttendanceModel:
                     "as": "member.tribe",
                 }
             },
-            {
-                "$addFields": {
-                    "member.tribe": {
-                        "$arrayElemAt": [
-                            "$member.tribe", 0
-                        ]
-                    }
-                }
-            },
-            {
-                "$match": {
-                    "member": {
-                        "$ne": None
-                    }
-                }
-            }
+            {"$addFields": {"member.tribe": {"$arrayElemAt": ["$member.tribe", 0]}}},
+            {"$match": {"member": {"$ne": None}}},
         ]
-
 
         # document = await self.collection.find_one(query, session=session)
         document = await self.collection.aggregate(pipeline, session=session).next()
@@ -344,13 +353,17 @@ class AttendanceModel:
         )  # type: ignore[assignment]
 
         if update_result.matched_count == 0:
-            raise HTTPException(status_code=404, detail="Attendance not found or is deleted")
+            raise HTTPException(
+                status_code=404, detail="Attendance not found or is deleted"
+            )
 
         document = await self.get_by_id(
             attendance_obj_id, include_deleted=True, session=session
         )
         if not document:
-            raise HTTPException(status_code=404, detail="Attendance not found after update")
+            raise HTTPException(
+                status_code=404, detail="Attendance not found after update"
+            )
         return document
 
     async def delete(
@@ -401,7 +414,9 @@ class AttendanceModel:
         attendance_obj_id = ObjectId(attendance_id)
         update = {"$set": {"deleted_at": None, "updated_at": datetime.now()}}
         update_result: UpdateResult = await self.collection.update_one(
-            {"_id": attendance_obj_id, "deleted_at": {"$ne": None}}, update, session=session
+            {"_id": attendance_obj_id, "deleted_at": {"$ne": None}},
+            update,
+            session=session,
         )  # type: ignore[assignment]
 
         if update_result.matched_count == 0:
@@ -413,7 +428,9 @@ class AttendanceModel:
             attendance_obj_id, include_deleted=True, session=session
         )
         if not document:
-            raise HTTPException(status_code=404, detail="Attendance not found after restore")
+            raise HTTPException(
+                status_code=404, detail="Attendance not found after restore"
+            )
         return document
 
 

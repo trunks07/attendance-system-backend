@@ -1,14 +1,13 @@
 from fastapi import Depends, FastAPI
 from fastapi.middleware.gzip import GZipMiddleware
-
 from app.http.controllers import (
+    AttendanceController,
     AuthController,
     LifegroupController,
     MemberController,
     SystemController,
     TribeController,
     UserController,
-    AttendanceController,
 )
 from app.services.AuthService import verify_token
 

@@ -1,5 +1,5 @@
-from datetime import datetime, timedelta
 import re
+from datetime import datetime, timedelta
 from typing import Optional
 
 
@@ -51,12 +51,12 @@ class Helper:
         # Fallback strptime patterns (no timezone awareness here)
         strptime_patterns = [
             "%Y-%m-%dT%H:%M:%S.%f",  # 2025-10-06T08:00:00.123
-            "%Y-%m-%dT%H:%M:%S",     # 2025-10-06T08:00:00
-            "%Y-%m-%dT%H:%M",        # 2025-10-06T08:00
+            "%Y-%m-%dT%H:%M:%S",  # 2025-10-06T08:00:00
+            "%Y-%m-%dT%H:%M",  # 2025-10-06T08:00
             "%Y-%m-%d %H:%M:%S.%f",  # 2025-10-06 08:00:00.123
-            "%Y-%m-%d %H:%M:%S",     # 2025-10-06 08:00:00
-            "%Y-%m-%d %H:%M",        # 2025-10-06 08:00
-            "%Y-%m-%d",              # 2025-10-06  (interpreted as midnight)
+            "%Y-%m-%d %H:%M:%S",  # 2025-10-06 08:00:00
+            "%Y-%m-%d %H:%M",  # 2025-10-06 08:00
+            "%Y-%m-%d",  # 2025-10-06  (interpreted as midnight)
         ]
 
         for fmt in strptime_patterns:
@@ -79,7 +79,7 @@ class Helper:
         target_week_start = start_of_current_week - timedelta(weeks=weeks_ago)
 
         return target_week_start.date()
-    
+
     @staticmethod
     def get_date_today():
         return datetime.today().date()

@@ -1,9 +1,9 @@
-from enum import Enum
-from bson import ObjectId
 from datetime import datetime
+from enum import Enum
 from typing import Any, Optional
-from pydantic_core import core_schema
+from bson import ObjectId
 from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic_core import core_schema
 
 
 class PyObjectId(ObjectId):
@@ -22,6 +22,7 @@ class PyObjectId(ObjectId):
         if not ObjectId.is_valid(value):
             raise ValueError("Invalid ObjectId")
         return ObjectId(value)
+
 
 class Classifications(str, Enum):
     WSAM = "WSAM"
