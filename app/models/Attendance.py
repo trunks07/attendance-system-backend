@@ -155,8 +155,8 @@ class AttendanceModel:
         self, attendance_data: AttendanceCreate, session: Optional[AgnosticClientSession] = None
     ) -> Optional[Dict[str, Any]]:
         item_dict = attendance_data.model_dump()
-        item_dict.setdefault("created_at", datetime.now())
-        item_dict.setdefault("updated_at", datetime.now())
+        # item_dict.setdefault("created_at", datetime.now())
+        # item_dict.setdefault("updated_at", datetime.now())
 
         result = await self.collection.insert_one(item_dict, session=session)
 
