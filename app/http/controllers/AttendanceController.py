@@ -4,12 +4,13 @@ from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
 from app.config.database import get_db
 from app.libs.helper import Helper
-from app.models.schemas.AttendanceSchema import Attendance
 from app.models.Attendance import AttendanceCreate, AttendanceModel, AttendanceUpdate
+from app.models.schemas.AttendanceSchema import Attendance
 
 router = APIRouter(tags=["Attendance"])
 
-@router.get('/', response_model=list[Attendance])
+
+@router.get("/", response_model=list[Attendance])
 async def index(
     page: int = Query(1, ge=1, description="Page number"),
     page_size: int = Query(10, ge=1, le=100, description="Items per page"),
@@ -17,12 +18,8 @@ async def index(
         None, description="Search term for Email or full_name"
     ),
     tribe: Optional[str] = Query(None, description="Tribe ID"),
-    start_datetime: Optional[str] = Query(
-        None, description="Start datetime"
-    ),
-    end_datetime: Optional[str] = Query(
-        None, description="End datetime"
-    )
+    start_datetime: Optional[str] = Query(None, description="Start datetime"),
+    end_datetime: Optional[str] = Query(None, description="End datetime"),
 ):
     db = await get_db()
 
@@ -36,7 +33,7 @@ async def index(
         search_term=search,
         tribe=tribe,
         start_datetime=start_datetime,
-        end_datetime=end_datetime
+        end_datetime=end_datetime,
     )
 
     response = Helper.paginate(
@@ -49,11 +46,11 @@ async def index(
     )
 
     return JSONResponse(
-        status_code=status.HTTP_200_OK, content=jsonable_encoder(response
-    ))
+        status_code=status.HTTP_200_OK, content=jsonable_encoder(response)
+    )
 
 
-@router.post('/', response_model=Attendance)
+@router.post("/", response_model=Attendance)
 async def store(request: AttendanceCreate):
     try:
         db = await get_db()
@@ -65,7 +62,8 @@ async def store(request: AttendanceCreate):
     except HTTPException as e:
         return JSONResponse(status_code=e.status_code, content={"error": e.detail})
 
-@router.get('/{attendance_id}', response_model=Attendance)
+
+@router.get("/{attendance_id}", response_model=Attendance)
 async def show(attendance_id: str):
     try:
         db = await get_db()
@@ -80,7 +78,8 @@ async def show(attendance_id: str):
     except HTTPException as e:
         return JSONResponse(status_code=e.status_code, content={"error": e.detail})
 
-@router.put('/{attendance_id}', response_model=Attendance)
+
+@router.put("/{attendance_id}", response_model=Attendance)
 async def update(attendance_id: str, request: AttendanceUpdate):
     try:
         db = await get_db()
@@ -98,7 +97,8 @@ async def update(attendance_id: str, request: AttendanceUpdate):
     except HTTPException as e:
         return JSONResponse(status_code=e.status_code, content={"error": e.detail})
 
-@router.delete('/{attendance_id}', response_model=None)
+
+@router.delete("/{attendance_id}", response_model=None)
 async def delete(attendance_id: str):
     try:
         db = await get_db()

@@ -28,6 +28,7 @@ class AttendanceTypes(str, Enum):
     LG = "LG"
     WS = "WS"
 
+
 class AttendanceBase(BaseModel):
     type: AttendanceTypes = Field(..., description="Attendance Type")
 
