@@ -7,7 +7,7 @@ certifi==2025.8.3
 cffi==2.0.0
 click==8.3.0
 colorama==0.4.6
-cryptography==46.0.2
+cryptography==46.0.6
 dnspython==2.8.0
 email-validator==2.3.0
 fastapi==0.117.1
@@ -38,7 +38,7 @@ pytest==8.4.2
 pytest-asyncio==1.2.0
 pytest-mock==3.15.1
 python-dotenv==1.1.1
-python-multipart==0.0.20
+python-multipart==0.0.22
 PyYAML==6.0.3
 rich==14.1.0
 rich-toolkit==0.15.1
@@ -46,13 +46,13 @@ rignore==0.6.4
 sentry-sdk==2.39.0
 shellingham==1.5.4
 sniffio==1.3.1
-starlette==0.48.0
+starlette==1.0.0
 typer==0.19.2
 types-cryptography==3.3.23.2
 types-passlib==1.7.7.20250602
 typing-inspection==0.4.1
 typing_extensions==4.15.0
-urllib3==2.5.0
+urllib3==2.6.3
 uvicorn==0.37.0
 watchfiles==1.1.0
 websockets==15.0.1
