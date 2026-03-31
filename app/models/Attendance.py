@@ -80,11 +80,11 @@ class AttendanceModel:
             }
 
         # Start pipeline with base query and optional date filter (applied early)
+        pipeline: List[Dict[str, Any]]
         if date_range_spec:
-            pipeline: List[Dict[str, Any]] = [{"$match": {**query, **date_range_spec}}]
+            pipeline = [{"$match": {**query, **date_range_spec}}]
         else:
-            pipeline: List[Dict[str, Any]] = [{"$match": query}]
-
+            pipeline = [{"$match": query}]
         # Lookup member and tribe (unwind member first, then lookup tribe)
         pipeline += [
             {
