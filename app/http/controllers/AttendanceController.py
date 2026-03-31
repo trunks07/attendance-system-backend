@@ -6,10 +6,7 @@ from app.config.database import get_db
 from app.libs.helper import Helper
 from app.models.Attendance import AttendanceCreate, AttendanceModel, AttendanceUpdate
 from app.models.schemas.AttendanceSchema import Attendance
-<<<<<<< HEAD
 from app.services.MemberClassificationService import MemberClassificationService
-=======
->>>>>>> 000e60a68e8efb26226ee6f459f486abec3ba6a3
 
 router = APIRouter(tags=["Attendance"])
 
