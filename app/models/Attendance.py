@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Union, cast
 from bson import ObjectId
 from fastapi import Depends, HTTPException
 from motor.core import AgnosticClientSession
@@ -154,8 +154,7 @@ class AttendanceModel:
     async def create(
         self, attendance_data: AttendanceCreate, session: Optional[AgnosticClientSession] = None
     ) -> Dict[str, Any]:
-        # item_dict = attendance_data.model_dump()
-        item_dict: Dict[str, Any] = attendance_data.model_dump()
+        item_dict = cast(Dict[str, Any], attendance_data.model_dump())
         item_dict.setdefault("created_at", datetime.now())
         item_dict.setdefault("updated_at", datetime.now())
 
