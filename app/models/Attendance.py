@@ -89,11 +89,11 @@ class AttendanceModel:
             }
 
         # Start pipeline with base query and optional date filter (applied early)
+        pipeline: List[Dict[str, Any]]
         if date_range_spec:
             pipeline = [{"$match": {**query, **date_range_spec}}]
         else:
             pipeline = [{"$match": query}]
-
         # Lookup member and tribe (unwind member first, then lookup tribe)
         pipeline += [
             {
@@ -252,7 +252,7 @@ class AttendanceModel:
         self,
         attendance_data: AttendanceCreate,
         session: Optional[AgnosticClientSession] = None,
-    ) -> Dict[str, Any]:
+    ) -> Optional[Dict[str, Any]]:
         item_dict = attendance_data.model_dump()
         item_dict.setdefault("created_at", datetime.now())
         item_dict.setdefault("updated_at", datetime.now())
@@ -267,7 +267,7 @@ class AttendanceModel:
                 status_code=500, detail="Failed to retrieve created Attendance"
             )
 
-        return self._convert_objectids_recursive(document)
+        return self._convert_objectids_recursive(document) if document else None
 
     async def get_by_id(
         self,
