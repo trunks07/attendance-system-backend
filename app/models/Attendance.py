@@ -154,11 +154,11 @@ class AttendanceModel:
     async def create(
         self, attendance_data: AttendanceCreate, session: Optional[AgnosticClientSession] = None
     ) -> Optional[Dict[str, Any]]:
-        item_dict = attendance_data.model_dump()
+        # item_dict = attendance_data.model_dump()
         # item_dict.setdefault("created_at", datetime.now())
         # item_dict.setdefault("updated_at", datetime.now())
 
-        result = await self.collection.insert_one(item_dict, session=session)
+        result = await self.collection.insert_one(attendance_data, session=session)
 
         document = await self.collection.find_one(
             {"_id": result.inserted_id}, session=session
