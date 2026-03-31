@@ -155,6 +155,7 @@ class AttendanceModel:
         self, attendance_data: AttendanceCreate, session: Optional[AgnosticClientSession] = None
     ) -> Dict[str, Any]:
         item_dict = attendance_data.model_dump()
+        item_dict: Dict[str, Any] = attendance_data.model_dump()
         item_dict.setdefault("created_at", datetime.now())
         item_dict.setdefault("updated_at", datetime.now())
 
