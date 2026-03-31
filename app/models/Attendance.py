@@ -81,9 +81,9 @@ class AttendanceModel:
 
         # Start pipeline with base query and optional date filter (applied early)
         if date_range_spec:
-            pipeline = [{"$match": {**query, **date_range_spec}}]
+            pipeline: List[Dict[str, Any]] = [{"$match": {**query, **date_range_spec}}]
         else:
-            pipeline = [{"$match": query}]
+            pipeline: List[Dict[str, Any]] = [{"$match": query}]
 
         # Lookup member and tribe (unwind member first, then lookup tribe)
         pipeline += [
@@ -154,11 +154,11 @@ class AttendanceModel:
     async def create(
         self, attendance_data: AttendanceCreate, session: Optional[AgnosticClientSession] = None
     ) -> Optional[Dict[str, Any]]:
-        # item_dict = attendance_data.model_dump()
-        # item_dict.setdefault("created_at", datetime.now())
-        # item_dict.setdefault("updated_at", datetime.now())
+        item_dict = attendance_data.model_dump()
+        item_dict.setdefault("created_at", datetime.now())
+        item_dict.setdefault("updated_at", datetime.now())
 
-        result = await self.collection.insert_one(attendance_data, session=session)
+        result = await self.collection.insert_one(item_dict, session=session)
 
         document = await self.collection.find_one(
             {"_id": result.inserted_id}, session=session
