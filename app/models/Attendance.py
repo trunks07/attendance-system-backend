@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Tuple, Union, cast
+from typing import Any, Dict, List, Optional, Tuple, Union
 from bson import ObjectId
 from fastapi import Depends, HTTPException
 from motor.core import AgnosticClientSession
@@ -154,7 +154,7 @@ class AttendanceModel:
     async def create(
         self, attendance_data: AttendanceCreate, session: Optional[AgnosticClientSession] = None
     ) -> Dict[str, Any]:
-        item_dict = cast(Dict[str, Any], attendance_data.model_dump())
+        item_dict = attendance_data.model_dump()
         item_dict.setdefault("created_at", datetime.now())
         item_dict.setdefault("updated_at", datetime.now())
 
@@ -168,7 +168,7 @@ class AttendanceModel:
                 status_code=500, detail="Failed to retrieve created Attendance"
             )
 
-        return self._convert_objectids_recursive(document)
+        return self._convert_objectids_recursive(document) if document else None
 
     async def get_by_id(
         self,
