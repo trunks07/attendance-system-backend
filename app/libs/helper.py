@@ -1,5 +1,5 @@
 import re
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Optional
 
 
@@ -67,3 +67,19 @@ class Helper:
 
         # Nothing matched
         raise ValueError(f"Unrecognized datetime format: {dt_str}")
+
+    @staticmethod
+    def get_start_date_of_week(weeks_ago: int):
+        today = datetime.today()
+
+        # Monday of the current week
+        start_of_current_week = today - timedelta(days=today.weekday())
+
+        # Move backward
+        target_week_start = start_of_current_week - timedelta(weeks=weeks_ago)
+
+        return target_week_start.date()
+
+    @staticmethod
+    def get_date_today():
+        return datetime.today().date()

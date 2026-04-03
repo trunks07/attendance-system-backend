@@ -1,11 +1,12 @@
 from typing import Optional
-from fastapi import APIRouter, HTTPException, Query, status
+from fastapi import APIRouter, BackgroundTasks, HTTPException, Query, status
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
 from app.config.database import get_db
 from app.libs.helper import Helper
 from app.models.Attendance import AttendanceCreate, AttendanceModel, AttendanceUpdate
 from app.models.schemas.AttendanceSchema import Attendance
+from app.services.MemberClassificationService import MemberClassificationService
 
 router = APIRouter(tags=["Attendance"])
 
@@ -51,10 +52,19 @@ async def index(
 
 
 @router.post("/", response_model=Attendance)
-async def store(request: AttendanceCreate):
+async def store(request: AttendanceCreate, background_tasks: BackgroundTasks):
     try:
         db = await get_db()
         result = await AttendanceModel(db).create(request)
+
+        if not result:
+            raise HTTPException(status_code=400, detail="Failed to create attendance")
+
+        background_tasks.add_task(
+            MemberClassificationService().checkMemberClassification,
+            member_id=result["member_id"],
+            type=result["type"],
+        )
 
         return JSONResponse(
             status_code=status.HTTP_201_CREATED, content=jsonable_encoder(result)

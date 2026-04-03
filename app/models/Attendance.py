@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional, Tuple, Union
 from bson import ObjectId
 from fastapi import Depends, HTTPException
@@ -73,6 +73,7 @@ class AttendanceModel:
             if start_dt is not None:
                 range_query["$gte"] = start_dt
             if end_dt is not None:
+                end_dt = end_dt + timedelta(days=1)
                 range_query["$lt"] = end_dt
 
             if not range_query:
@@ -166,6 +167,86 @@ class AttendanceModel:
         ]
 
         return converted_attendances, total_count
+
+    async def get_member_attendances(
+        self,
+        member_id: Optional[str] = None,
+        start_datetime: Optional[str] = None,  # accepts typical frontend formats
+        end_datetime: Optional[str] = None,  # accepts typical frontend formats
+        include_deleted: bool = False,
+        session: Optional[AgnosticClientSession] = None,
+    ) -> List[Dict[str, Any]]:
+        query = self._base_query(include_deleted)
+
+        # If member_id provided, validate and add to base query
+        if member_id:
+            if not ObjectId.is_valid(member_id):
+                raise HTTPException(status_code=400, detail="Invalid member id format")
+            query["member_id"] = ObjectId(member_id)
+
+        # Build date/time range match if any
+        date_range_spec: Optional[Dict[str, Any]] = None
+        if start_datetime or end_datetime:
+            try:
+                start_dt = (
+                    Helper.parse_flexible_datetime(start_datetime)
+                    if start_datetime
+                    else None
+                )
+                end_dt = (
+                    Helper.parse_flexible_datetime(end_datetime)
+                    if end_datetime
+                    else None
+                )
+            except ValueError as e:
+                raise HTTPException(status_code=400, detail=str(e))
+
+            range_query: Dict[str, Any] = {}
+            if start_dt is not None:
+                range_query["$gte"] = start_dt
+            if end_dt is not None:
+                end_dt = end_dt + timedelta(days=1)
+                range_query["$lt"] = end_dt
+
+            if not range_query:
+                raise HTTPException(status_code=400, detail="Invalid datetime range")
+
+            # Try to match against common date fields in attendance documents
+            date_range_spec = {
+                "$or": [
+                    {"date": range_query},
+                    {"attendance_date": range_query},
+                    {"created_at": range_query},
+                ]
+            }
+
+        # Start pipeline with base query and optional date filter (applied early)
+        if date_range_spec:
+            pipeline = [{"$match": {**query, **date_range_spec}}]
+        else:
+            pipeline = [{"$match": query}]
+
+        # Lookup member (unwind member)
+        pipeline += [
+            {
+                "$lookup": {
+                    "from": "members",
+                    "localField": "member_id",
+                    "foreignField": "_id",
+                    "as": "member",
+                }
+            },
+            {"$unwind": {"path": "$member", "preserveNullAndEmptyArrays": True}},
+            {"$match": {"member": {"$ne": None}}},
+        ]
+
+        # Run aggregation and return all matching documents (no pagination)
+        cursor = self.collection.aggregate(pipeline, session=session)
+        attendances = await cursor.to_list(
+            length=None
+        )  # length=None => return all results
+
+        return [self._convert_objectids_recursive(t) for t in attendances]
 
     async def create(
         self,

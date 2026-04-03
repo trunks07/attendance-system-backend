@@ -1,4 +1,5 @@
 from datetime import datetime
+from enum import Enum
 from typing import Any, Optional
 from bson import ObjectId
 from pydantic import BaseModel, ConfigDict, Field, field_validator
@@ -23,12 +24,20 @@ class PyObjectId(ObjectId):
         return ObjectId(value)
 
 
+class Classifications(str, Enum):
+    WSAM = "WSAM"
+    LGAM = "LGAM"
+    WSAMLGAM = "WSAMLGAM"
+    INACTIVE = "INACTIVE"
+
+
 class MemberBase(BaseModel):
     first_name: str
     middle_name: Optional[str]
     last_name: str
     address: str
     birthday: datetime
+    classification: Optional[Classifications] = Classifications.LGAM
 
 
 class MemberCreate(MemberBase):
@@ -45,6 +54,7 @@ class MemberUpdate(BaseModel):
     last_name: Optional[str] = None
     address: Optional[str] = None
     birthday: Optional[datetime] = None
+    classification: Optional[Classifications] = None
     updated_at: datetime = Field(default_factory=datetime.now)
 
 
