@@ -57,6 +57,9 @@ async def store(request: AttendanceCreate, background_tasks: BackgroundTasks):
         db = await get_db()
         result = await AttendanceModel(db).create(request)
 
+        if not result:
+            raise HTTPException(status_code=400, detail="Failed to create attendance")
+
         background_tasks.add_task(
             MemberClassificationService().checkMemberClassification,
             member_id=result["member_id"],
